@@ -88,7 +88,7 @@
         select {
             width: 100%;
             padding: 16px;
-            font-size: 18px;
+            font-size: 16px;
             border-radius: 8px;
             border: 2px solid var(--border);
             background-color: var(--bg);
@@ -150,11 +150,11 @@
         <h2>Staff Attendance</h2>
 
         <div class="form-group">
-            <label for="staffName">Select Your Name</label>
+            <label for="staffName">Select Your Profile</label>
             <select id="staffName">
-                <option value="" disabled selected>-- Choose Name --</option>
-                <option value="S. Aswin">S. Aswin</option>
-                <option value="M. Ajay">M. Ajay</option>
+                <option value="" disabled selected>-- Choose Name & Designation --</option>
+                <option value="S. Aswin">S. Aswin - WareHouse Packaging Manager</option>
+                <option value="M. Ajay">M. Ajay - WareHouse Catalogue Manager</option>
             </select>
         </div>
 
@@ -188,7 +188,6 @@
         }
 
         // --- Punch Logic ---
-        // REPLACE WITH YOUR APPS SCRIPT URL
         const scriptURL = 'https://script.google.com/macros/s/AKfycbztj_cU2LtHlHztnFk9wP84pDe8BwLbtzfSoiZfVwT_d5cc4PDjM_qTV9m9LPUxfPbj6Q/exec';
 
         function submitPunch(action) {
@@ -224,7 +223,7 @@
                     // Reset UI
                     inBtn.disabled = false;
                     outBtn.disabled = false;
-                    document.getElementById('staffName').value = ""; // Force them to select name next time
+                    document.getElementById('staffName').value = ""; 
                     
                     setTimeout(() => { statusDiv.style.display = 'none'; }, 5000);
                 })
