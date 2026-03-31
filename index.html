@@ -167,7 +167,6 @@
     </div>
 
     <script>
-        // --- Dark Mode Logic ---
         const currentTheme = localStorage.getItem('theme') || 'light';
         if (currentTheme === 'dark') {
             document.body.setAttribute('data-theme', 'dark');
@@ -187,7 +186,6 @@
             }
         }
 
-        // --- Prevent Double Punch Logic ---
         function checkStaffState() {
             const staffName = document.getElementById('staffName').value;
             const inBtn = document.getElementById('inBtn');
@@ -195,14 +193,11 @@
             
             if (!staffName) return;
 
-            // Check browser memory for this specific user's last punch
             const lastPunch = localStorage.getItem('ibi_punch_' + staffName);
             
-            // Reset visuals first
             inBtn.style.opacity = '1';
             outBtn.style.opacity = '1';
 
-            // Visually dim the incorrect button
             if (lastPunch === 'IN') {
                 inBtn.style.opacity = '0.3';
             } else if (lastPunch === 'OUT') {
@@ -210,19 +205,16 @@
             }
         }
 
-        // --- Voice Feedback Logic ---
         function speakThankYou() {
             if ('speechSynthesis' in window) {
                 const msg = new SpeechSynthesisUtterance("Thank You, from India Business International");
-                msg.rate = 0.9; // Slightly slower to sound professional
+                msg.rate = 0.9; 
                 window.speechSynthesis.speak(msg);
             }
         }
 
-        // --- Main Punch Logic ---
-        
         // ⚠️ IMPORTANT: Paste your brand new URL between the single quotes below! 
-        const scriptURL = 'PASTE_YOUR_BRAND_NEW_URL_HERE';
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbztj_cU2LtHlHztnFk9wP84pDe8BwLbtzfSoiZfVwT_d5cc4PDjM_qTV9m9LPUxfPbj6Q/exec';
 
         function submitPunch(action) {
             const staffName = document.getElementById('staffName').value;
@@ -235,7 +227,6 @@
                 return;
             }
 
-            // ENFORCE THE RULE: Check if they are accidentally double-punching
             const lastPunch = localStorage.getItem('ibi_punch_' + staffName);
             
             if (action === 'IN' && lastPunch === 'IN') {
@@ -247,38 +238,38 @@
                 return;
             }
 
-            // UI Loading state
             inBtn.disabled = true;
             outBtn.disabled = true;
             statusDiv.className = '';
             statusDiv.innerText = 'Recording punch... please wait.';
             statusDiv.style.display = 'block';
 
-            // Prepare Data
             const formData = new FormData();
             formData.append('staffName', staffName);
             formData.append('action', action);
 
-            // Send to Google Sheets
+            // UPDATED: Now it actually reads Google's reply to check for errors!
             fetch(scriptURL, { method: 'POST', body: formData })
-                .then(response => {
-                    const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    statusDiv.innerText = `Success! ${action} recorded for ${staffName} at ${time}.`;
-                    statusDiv.className = 'status-success';
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        statusDiv.innerText = `Success! ${action} recorded for ${staffName} at ${time}.`;
+                        statusDiv.className = 'status-success';
+                        speakThankYou();
+                        localStorage.setItem('ibi_punch_' + staffName, action);
+                    } else {
+                        // If Google sends back an error, display it in red!
+                        statusDiv.innerText = `Google Error: ${data.message}`;
+                        statusDiv.className = 'status-error';
+                    }
                     
-                    // Trigger the Voice
-                    speakThankYou();
-
-                    // Save the successful punch to browser memory
-                    localStorage.setItem('ibi_punch_' + staffName, action);
-                    
-                    // Reset UI
                     inBtn.disabled = false;
                     outBtn.disabled = false;
                     document.getElementById('staffName').value = ""; 
-                    checkStaffState(); // Update visuals for next person
+                    checkStaffState(); 
                     
-                    setTimeout(() => { statusDiv.style.display = 'none'; }, 5000);
+                    setTimeout(() => { statusDiv.style.display = 'none'; }, 8000);
                 })
                 .catch(error => {
                     statusDiv.innerText = 'Network error. Please try again.';
