@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>IBI Staff Attendance</title>
+    
+    <link rel="icon" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='black'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial, sans-serif' font-size='26' font-weight='bold' fill='%2300c5ff' dominant-baseline='central' text-anchor='middle'%3EIBI%3C/text%3E%3C/svg%3E" type="image/svg+xml">
+
     <style>
         :root {
             --bg: #f4f5f7;
@@ -70,6 +73,15 @@
             box-sizing: border-box;
             text-align: center;
             transition: background-color 0.3s;
+        }
+
+        /* Responsive CSS for the wide Twitter Header Company Logo */
+        .company-logo {
+            max-width: 100%; 
+            height: auto;
+            margin: 0 auto 20px auto;
+            display: block;
+            border-radius: 8px;
         }
 
         h2 { margin-top: 0; margin-bottom: 24px; }
@@ -147,6 +159,8 @@
     </div>
 
     <div class="card">
+        <img src="Twitter Header Photo.png" alt="India Business International Logo" class="company-logo">
+        
         <h2>Staff Attendance</h2>
 
         <div class="form-group">
@@ -213,7 +227,6 @@
             }
         }
 
-        // ⚠️ IMPORTANT: Paste your brand new URL between the single quotes below! 
         const scriptURL = 'https://script.google.com/macros/s/AKfycbztj_cU2LtHlHztnFk9wP84pDe8BwLbtzfSoiZfVwT_d5cc4PDjM_qTV9m9LPUxfPbj6Q/exec';
 
         function submitPunch(action) {
@@ -248,7 +261,6 @@
             formData.append('staffName', staffName);
             formData.append('action', action);
 
-            // UPDATED: Now it actually reads Google's reply to check for errors!
             fetch(scriptURL, { method: 'POST', body: formData })
                 .then(response => response.json())
                 .then(data => {
@@ -259,7 +271,6 @@
                         speakThankYou();
                         localStorage.setItem('ibi_punch_' + staffName, action);
                     } else {
-                        // If Google sends back an error, display it in red!
                         statusDiv.innerText = `Google Error: ${data.message}`;
                         statusDiv.className = 'status-error';
                     }
