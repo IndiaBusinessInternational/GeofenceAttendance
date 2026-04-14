@@ -113,14 +113,16 @@
 
         select:focus { border-color: #3b82f6; }
 
+        /* Modified to always be visible */
         .gps-display {
             background-color: var(--gps-bg);
             padding: 12px;
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 14px;
             margin-bottom: 20px;
-            font-weight: 600;
-            display: none; 
+            font-weight: bold;
+            display: block; 
+            border: 1px solid var(--border);
         }
 
         .btn-group {
@@ -185,7 +187,7 @@
         </div>
 
         <div id="gpsBox" class="gps-display">
-            📍 <span id="gpsText">GPS Status: Waiting for punch...</span>
+            📍 <span id="gpsText" style="color: var(--text);">Initializing GPS... Please Allow Location.</span>
         </div>
 
         <div class="btn-group">
@@ -262,13 +264,52 @@
             return R * c; 
         }
 
+        // Live GPS Tracking Function
+        function startLiveGPS() {
+            const gpsText = document.getElementById('gpsText');
+            
+            if (!navigator.geolocation) {
+                gpsText.innerText = "Error: GPS is not supported on this browser.";
+                gpsText.style.color = "red";
+                return;
+            }
+
+            navigator.geolocation.watchPosition(
+                function(position) {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+                    const distance = Math.round(calculateDistance(userLat, userLon, WAREHOUSE_LAT, WAREHOUSE_LON));
+
+                    if (distance <= MAX_DISTANCE_METERS) {
+                        gpsText.innerHTML = `On-Site Verified: ${distance}m away 🟢`;
+                        gpsText.style.color = "#10b981"; // Green
+                    } else {
+                        gpsText.innerHTML = `Outside Zone: ${distance}m away 🔴`;
+                        gpsText.style.color = "#ef4444"; // Red
+                    }
+                },
+                function(error) {
+                    let errorMsg = 'Unknown Location Error.';
+                    if (error.code === 1) errorMsg = 'Location Access Denied. Please enable it.';
+                    if (error.code === 2) errorMsg = 'Searching for GPS signal...';
+                    if (error.code === 3) errorMsg = 'Location request timed out.';
+                    gpsText.innerText = errorMsg;
+                    gpsText.style.color = "#ef4444";
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+            );
+        }
+
+        // Start GPS tracking immediately when the page loads
+        window.onload = function() {
+            startLiveGPS();
+        };
+
         const scriptURL = 'https://script.google.com/macros/s/AKfycbztj_cU2LtHlHztnFk9wP84pDe8BwLbtzfSoiZfVwT_d5cc4PDjM_qTV9m9LPUxfPbj6Q/exec';
 
         function submitPunch(action) {
             const staffName = document.getElementById('staffName').value;
             const statusDiv = document.getElementById('status');
-            const gpsBox = document.getElementById('gpsBox');
-            const gpsText = document.getElementById('gpsText');
             const inBtn = document.getElementById('inBtn');
             const outBtn = document.getElementById('outBtn');
 
@@ -291,31 +332,16 @@
             inBtn.disabled = true;
             outBtn.disabled = true;
             statusDiv.className = 'status-warning';
-            statusDiv.innerText = 'Acquiring Location... Please wait.';
-            
-            gpsBox.style.display = 'block';
-            gpsText.innerText = "Calculating distance to warehouse...";
-
-            if (!navigator.geolocation) {
-                gpsText.innerText = "GPS Not Supported";
-                statusDiv.innerText = 'Error: GPS is not supported on this device/browser.';
-                statusDiv.className = 'status-error';
-                inBtn.disabled = false;
-                outBtn.disabled = false;
-                return;
-            }
+            statusDiv.innerText = 'Verifying final location... Please wait.';
 
             navigator.geolocation.getCurrentPosition(
                 function(position) {
                     const userLat = position.coords.latitude;
                     const userLon = position.coords.longitude;
-                    
                     const distance = Math.round(calculateDistance(userLat, userLon, WAREHOUSE_LAT, WAREHOUSE_LON));
 
-                    gpsText.innerText = `Current Distance: ${distance} meters`;
-
                     if (distance > MAX_DISTANCE_METERS) {
-                        statusDiv.innerText = `Punch Denied: You must be within ${MAX_DISTANCE_METERS}m of the warehouse.`;
+                        statusDiv.innerText = `Punch Denied: You are ${distance}m away. Must be within ${MAX_DISTANCE_METERS}m.`;
                         statusDiv.className = 'status-error';
                         inBtn.disabled = false;
                         outBtn.disabled = false;
@@ -323,7 +349,7 @@
                     }
 
                     statusDiv.className = 'status-warning';
-                    statusDiv.innerText = `Location Verified (${distance}m). Recording punch...`;
+                    statusDiv.innerText = `Location Confirmed. Recording punch...`;
 
                     const formData = new FormData();
                     formData.append('staffName', staffName);
@@ -350,7 +376,6 @@
                             
                             setTimeout(() => { 
                                 statusDiv.style.display = 'none'; 
-                                gpsBox.style.display = 'none'; 
                             }, 8000);
                         })
                         .catch(error => {
@@ -367,7 +392,6 @@
                     if (error.code === 2) errorMsg = 'Punch Denied: GPS signal lost.';
                     if (error.code === 3) errorMsg = 'Punch Denied: Location request timed out.';
                     
-                    gpsText.innerText = "Location Error";
                     statusDiv.innerText = errorMsg;
                     statusDiv.className = 'status-error';
                     inBtn.disabled = false;
