@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IBI Staff Attendance</title>
+    <link rel="icon" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23080C14'/%3E%3Ccircle cx='20' cy='20' r='3' fill='%2329ABE2' opacity='.5'/%3E%3Ccircle cx='32' cy='20' r='3' fill='%2329ABE2'/%3E%3Ccircle cx='44' cy='20' r='3' fill='%2329ABE2' opacity='.5'/%3E%3Ccircle cx='20' cy='32' r='3' fill='%2329ABE2'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%2329ABE2'/%3E%3Ccircle cx='44' cy='32' r='3' fill='%2329ABE2'/%3E%3Ccircle cx='20' cy='44' r='3' fill='%2329ABE2' opacity='.5'/%3E%3Ccircle cx='32' cy='44' r='3' fill='%2329ABE2'/%3E%3Ccircle cx='44' cy='44' r='3' fill='%2329ABE2' opacity='.5'/%3E%3C/svg%3E" type="image/svg+xml">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* ═══════════════════════════════════════
+           ROOT & RESET
+        ═══════════════════════════════════════ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:          #07090F;
+            --surface:     #0C1220;
+            --surface2:    #111A2E;
+            --surface3:    #162035;
+            --border:      rgba(41, 171, 226, 0.12);
+            --border-hi:   rgba(41, 171, 226, 0.38);
+            --cyan:        #29ABE2;
+            --cyan-bright: #5CC5EE;
+            --cyan-dim:    rgba(41, 171, 226, 0.10);
+            --text:        #C8DEE9;
+            --text2:       #5A7A90;
+            --text3:       #2C4155;
+            --green:       #00CC7A;
+            --green-bg:    rgba(0, 204, 122, 0.10);
+            --green-bdr:   rgba(0, 204, 122, 0.28);
+            --red:         #FF4D5A;
+            --red-bg:      rgba(255, 77, 90, 0.10);
+            --red-bdr:     rgba(255, 77, 90, 0.28);
+            --amber:       #F5A623;
+            --amber-bg:    rgba(245, 166, 35, 0.10);
+            --amber-bdr:   rgba(245, 166, 35, 0.28);
+            --radius-sm:   8px;
+            --radius-md:   12px;
+            --radius-lg:   18px;
+            --sans:        'DM Sans', system-ui, sans-serif;
+            --mono:        'JetBrains Mono', 'Courier New', monospace;
+            --display:     'Bebas Neue', 'Arial Black', sans-serif;
+        }
+
+        [data-theme="light"] {
+            --bg:          #E8F3FA;
+            --surface:     #FFFFFF;
+            --surface2:    #EEF6FB;
+            --surface3:    #E0EFF8;
+            --border:      rgba(41, 171, 226, 0.18);
+            --border-hi:   rgba(41, 171, 226, 0.50);
+            --cyan:        #1890C4;
+            --cyan-bright: #29ABE2;
+            --cyan-dim:    rgba(24, 144, 196, 0.10);
+            --text:        #0D2135;
+            --text2:       #3F6880;
+            --text3:       #98BBCE;
+            --green:       #009960;
+            --green-bg:    rgba(0, 153, 96, 0.08);
+            --green-bdr:   rgba(0, 153, 96, 0.30);
+            --red:         #D63040;
+            --red-bg:      rgba(214, 48, 64, 0.08);
+            --red-bdr:     rgba(214, 48, 64, 0.28);
+            --amber:       #C88310;
+            --amber-bg:    rgba(200, 131, 16, 0.08);
+            --amber-bdr:   rgba(200, 131, 16, 0.28);
+        }
+
+        html { height: 100%; }
+
+        body {
+            font-family: var(--sans);
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at 1px 1px, rgba(41,171,226,0.055) 1px, transparent 0);
+            background-size: 26px 26px;
+            color: var(--text);
+            min-height: 100%;
+            padding: 14px 14px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: background-color 0.35s, color 0.35s;
+        }
+
+        /* ═══════════════════════════════════════
+           HEADER
+        ═══════════════════════════════════════ */
+        .header {
+            width: 100%;
+            max-width: 428px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0 18px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            background: var(--cyan-dim);
+            border: 1px solid var(--border-hi);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .brand-mark svg { display: block; }
+
+        .brand-text { line-height: 1; }
+
+        .brand-name {
+            font-family: var(--display);
+            font-size: 23px;
+            letter-spacing: 0.05em;
+            color: var(--cyan);
+            display: block;
+        }
+
+        .brand-sub {
+            font-size: 9.5px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--text2);
+            display: block;
+            margin-top: 2px;
+        }
+
+        .theme-toggle {
+            width: 36px;
+            height: 36px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text2);
+            transition: border-color 0.2s, transform 0.15s;
+            flex-shrink: 0;
+        }
+
+        .theme-toggle:hover { border-color: var(--border-hi); transform: scale(1.08); }
+
+        /* ═══════════════════════════════════════
+           CARD
+        ═══════════════════════════════════════ */
+        .card {
+            width: 100%;
+            max-width: 428px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1) forwards;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Top accent line */
+        .card-accent {
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--cyan) 35%, var(--cyan-bright) 65%, transparent 100%);
+        }
+
+        .card-body { padding: 22px 18px; }
+
+        /* ═══════════════════════════════════════
+           SHARED
+        ═══════════════════════════════════════ */
+        .section-label {
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text3);
+            margin-bottom: 9px;
+            display: block;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 18px 0;
+        }
+
+        /* ═══════════════════════════════════════
+           PROFILE SELECTOR
+        ═══════════════════════════════════════ */
+        .select-wrap {
+            position: relative;
+            margin-bottom: 18px;
+        }
+
+        .select-arrow {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--cyan);
+        }
+
+        select#staffName {
+            width: 100%;
+            padding: 14px 42px 14px 16px;
+            font-size: 15px;
+            font-family: var(--sans);
+            font-weight: 500;
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            appearance: none;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        select#staffName:focus {
+            border-color: var(--border-hi);
+            box-shadow: 0 0 0 3px var(--cyan-dim);
+        }
+
+        /* ═══════════════════════════════════════
+           GPS PANEL
+        ═══════════════════════════════════════ */
+        .gps-panel {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px 14px 13px;
+            margin-bottom: 18px;
+        }
+
+        .gps-toprow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        /* Status badge */
+        .gps-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 11px;
+            border-radius: 20px;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            transition: all 0.35s;
+        }
+
+        .gps-badge.acquiring { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bdr); }
+        .gps-badge.onsite    { background: var(--green-bg);  color: var(--green);  border: 1px solid var(--green-bdr); }
+        .gps-badge.offsite   { background: var(--red-bg);    color: var(--red);    border: 1px solid var(--red-bdr); }
+        .gps-badge.gps-error { background: var(--red-bg);    color: var(--red);    border: 1px solid var(--red-bdr); }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+
+        .badge-dot.pulsing { animation: blink 1.1s ease-in-out infinite; }
+
+        @keyframes blink {
+            0%,100% { opacity: 1; }
+            50%      { opacity: 0.3; transform: scale(0.75); }
+        }
+
+        /* Sync button */
+        .sync-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text2);
+            font-size: 10.5px;
+            font-family: var(--sans);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            padding: 4px 11px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .sync-btn:hover { border-color: var(--border-hi); color: var(--cyan); }
+        .sync-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .sync-btn svg { flex-shrink: 0; }
+        .sync-btn.spinning svg { animation: spin 0.75s linear infinite; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* GPS data grid */
+        .gps-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .gps-cell {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 9px 12px;
+        }
+
+        .gps-cell-label {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
+            color: var(--text3);
+            margin-bottom: 3px;
+        }
+
+        .gps-cell-val {
+            font-family: var(--mono);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .gps-cell-val.cyan { color: var(--cyan); }
+
+        /* GPS Stability */
+        .stability-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stab-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text2);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+            width: 46px;
+        }
+
+        .stab-dots {
+            display: flex;
+            gap: 5px;
+            flex: 1;
+        }
+
+        .s-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--text3);
+            border: 1px solid transparent;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        .s-dot.valid   { background: var(--green); border-color: var(--green-bdr); transform: scale(1.1); }
+        .s-dot.invalid { background: var(--red);   border-color: var(--red-bdr); }
+
+        .stab-status {
+            font-family: var(--mono);
+            font-size: 10.5px;
+            font-weight: 500;
+            color: var(--text2);
+            min-width: 56px;
+            text-align: right;
+            letter-spacing: 0.03em;
+        }
+
+        .stab-status.locked  { color: var(--green); }
+        .stab-status.outside { color: var(--red); }
+
+        /* ═══════════════════════════════════════
+           OFFLINE RETRY BANNER
+        ═══════════════════════════════════════ */
+        .offline-banner {
+            display: none;
+            align-items: center;
+            gap: 9px;
+            background: var(--amber-bg);
+            border: 1px solid var(--amber-bdr);
+            border-radius: var(--radius-md);
+            padding: 10px 14px;
+            margin-bottom: 18px;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--amber);
+            line-height: 1.4;
+        }
+
+        .offline-banner.visible { display: flex; }
+
+        /* ═══════════════════════════════════════
+           PUNCH TIMELINE
+        ═══════════════════════════════════════ */
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .shift-pill {
+            font-family: var(--mono);
+            font-size: 10.5px;
+            font-weight: 500;
+            color: var(--cyan);
+            background: var(--cyan-dim);
+            border: 1px solid rgba(41,171,226,0.22);
+            padding: 3px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.04em;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 18px;
+            min-height: 36px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 10px;
+            bottom: 10px;
+            width: 1px;
+            background: var(--border);
+        }
+
+        .tl-empty {
+            font-size: 13px;
+            color: var(--text3);
+            padding: 6px 0;
+            font-style: italic;
+        }
+
+        .tl-row {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 6px 0;
+            position: relative;
+        }
+
+        .tl-node {
+            position: absolute;
+            left: -15px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 1.5px solid;
+        }
+
+        .tl-node.in-node  { border-color: var(--cyan);  background: var(--cyan-dim); }
+        .tl-node.out-node { border-color: var(--red);   background: var(--red-bg); }
+
+        .tl-type {
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            padding: 2px 8px;
+            border-radius: 4px;
+            min-width: 34px;
+            text-align: center;
+        }
+
+        .tl-type.in  { background: var(--cyan-dim);  color: var(--cyan);  border: 1px solid rgba(41,171,226,0.2); }
+        .tl-type.out { background: var(--red-bg);    color: var(--red);   border: 1px solid var(--red-bdr); }
+
+        .tl-time {
+            font-family: var(--mono);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .tl-pending {
+            font-size: 10px;
+            color: var(--amber);
+            font-weight: 600;
+            margin-left: 2px;
+        }
+
+        /* Loading state */
+        .tl-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+        }
+
+        .skel {
+            background: var(--border);
+            border-radius: 4px;
+            animation: shimmer 1.4s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%,100% { opacity: 0.4; }
+            50%      { opacity: 0.9; }
+        }
+
+        /* ═══════════════════════════════════════
+           PUNCH BUTTONS
+        ═══════════════════════════════════════ */
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+        }
+
+        .punch-btn {
+            width: 100%;
+            height: 66px;
+            border: 1.5px solid;
+            border-radius: var(--radius-md);
+            font-family: var(--sans);
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.12s, box-shadow 0.2s, opacity 0.3s;
+        }
+
+        .punch-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0);
+            transition: background 0.15s;
+        }
+
+        .punch-btn:hover:not(:disabled)::after { background: rgba(255,255,255,0.05); }
+        .punch-btn:active:not(:disabled) { transform: scale(0.975); }
+
+        .punch-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.22;
+            box-shadow: none !important;
+        }
+
+        /* IN button */
+        .btn-in {
+            background: var(--green-bg);
+            color: var(--green);
+            border-color: var(--green-bdr);
+        }
+
+        .btn-in.active {
+            background: var(--green);
+            color: #fff;
+            border-color: var(--green);
+            box-shadow: 0 6px 22px rgba(0,204,122,0.32);
+        }
+
+        /* OUT button */
+        .btn-out {
+            background: var(--red-bg);
+            color: var(--red);
+            border-color: var(--red-bdr);
+        }
+
+        .btn-out.active {
+            background: var(--red);
+            color: #fff;
+            border-color: var(--red);
+            box-shadow: 0 6px 22px rgba(255,77,90,0.28);
+        }
+
+        .btn-icon { font-size: 20px; line-height: 1; }
+        .btn-aux  { font-size: 13px; opacity: 0.65; margin-left: 2px; }
+
+        /* GPS lock hint */
+        .gps-hint {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text3);
+            margin-top: 2px;
+            display: none;
+        }
+
+        /* ═══════════════════════════════════════
+           STATUS MESSAGE
+        ═══════════════════════════════════════ */
+        #statusMsg {
+            margin-top: 14px;
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            line-height: 1.5;
+            display: none;
+        }
+
+        #statusMsg.success { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bdr); }
+        #statusMsg.error   { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bdr); }
+        #statusMsg.warning { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bdr); }
+
+        /* ═══════════════════════════════════════
+           CARD FOOTER
+        ═══════════════════════════════════════ */
+        .card-footer {
+            border-top: 1px solid var(--border);
+            padding: 11px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-date {
+            font-family: var(--mono);
+            font-size: 10.5px;
+            color: var(--text3);
+            letter-spacing: 0.02em;
+        }
+
+        .footer-time {
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text2);
+            letter-spacing: 0.03em;
+        }
+
+    </style>
+</head>
+<body>
+
+<!-- ════════════════════ HEADER ════════════════════ -->
+<header class="header">
+    <div class="brand">
+        <div class="brand-mark">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <circle cx="5"  cy="5"  r="2" fill="var(--cyan)" opacity=".45"/>
+                <circle cx="11" cy="5"  r="2" fill="var(--cyan)" opacity=".85"/>
+                <circle cx="17" cy="5"  r="2" fill="var(--cyan)" opacity=".45"/>
+                <circle cx="5"  cy="11" r="2" fill="var(--cyan)" opacity=".85"/>
+                <circle cx="11" cy="11" r="3" fill="var(--cyan)"/>
+                <circle cx="17" cy="11" r="2" fill="var(--cyan)" opacity=".85"/>
+                <circle cx="5"  cy="17" r="2" fill="var(--cyan)" opacity=".45"/>
+                <circle cx="11" cy="17" r="2" fill="var(--cyan)" opacity=".85"/>
+                <circle cx="17" cy="17" r="2" fill="var(--cyan)" opacity=".45"/>
+            </svg>
+        </div>
+        <div class="brand-text">
+            <span class="brand-name">IBI Attendance</span>
+            <span class="brand-sub">Warehouse · Kanyakumari</span>
+        </div>
+    </div>
+    <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🌙</button>
+</header>
+
+<!-- ════════════════════ CARD ════════════════════ -->
+<div class="card">
+    <div class="card-accent"></div>
+    <div class="card-body">
+
+        <!-- ── PROFILE ── -->
+        <span class="section-label">Staff Profile</span>
+        <div class="select-wrap">
+            <select id="staffName" onchange="onProfileChange()">
+                <option value="" disabled selected>— Select Your Name —</option>
+                <option value="S. Aswin">S. Aswin · Packaging Manager</option>
+                <option value="M. Ajay">M. Ajay · Catalogue Manager</option>
+            </select>
+            <svg class="select-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+
+        <!-- ── GPS PANEL ── -->
+        <div class="gps-panel">
+            <div class="gps-toprow">
+                <div id="gpsBadge" class="gps-badge acquiring">
+                    <span class="badge-dot pulsing"></span>
+                    <span id="gpsLabel">Initializing GPS</span>
+                </div>
+                <button class="sync-btn" id="syncBtn" onclick="syncFromServer()">
+                    <svg id="syncIcon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <polyline points="1 20 1 14 7 14"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                    Sync
+                </button>
+            </div>
+
+            <div class="gps-grid">
+                <div class="gps-cell">
+                    <div class="gps-cell-label">Distance</div>
+                    <div class="gps-cell-val cyan" id="distVal">—</div>
+                </div>
+                <div class="gps-cell">
+                    <div class="gps-cell-label">Accuracy</div>
+                    <div class="gps-cell-val" id="accVal">—</div>
+                </div>
+            </div>
+
+            <div class="stability-row">
+                <span class="stab-label">Signal</span>
+                <div class="stab-dots">
+                    <div class="s-dot" id="sd0"></div>
+                    <div class="s-dot" id="sd1"></div>
+                    <div class="s-dot" id="sd2"></div>
+                    <div class="s-dot" id="sd3"></div>
+                    <div class="s-dot" id="sd4"></div>
+                </div>
+                <span class="stab-status" id="stabStatus">Acquiring...</span>
+            </div>
+        </div>
+
+        <!-- ── OFFLINE BANNER ── -->
+        <div class="offline-banner" id="offlineBanner">
+            <span style="font-size:15px;flex-shrink:0">⚠</span>
+            <span id="offlineText">Pending punch found — will retry automatically</span>
+        </div>
+
+        <!-- ── PUNCH TIMELINE ── -->
+        <div class="timeline-header">
+            <span class="section-label" style="margin-bottom:0">Today's Activity</span>
+            <span class="shift-pill" id="shiftPill">—</span>
+        </div>
+        <div class="timeline" id="timeline">
+            <div class="tl-empty" id="tlEmpty">No punches recorded yet today</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- ── PUNCH BUTTONS ── -->
+        <div class="btn-group">
+            <button class="punch-btn btn-in" id="inBtn" onclick="submitPunch('IN')" disabled>
+                <span class="btn-icon">↑</span>
+                <span>Punch In</span>
+                <span class="btn-aux" id="inAux">🔒</span>
+            </button>
+            <button class="punch-btn btn-out" id="outBtn" onclick="submitPunch('OUT')" disabled>
+                <span class="btn-icon">↓</span>
+                <span>Punch Out</span>
+                <span class="btn-aux" id="outAux">🔒</span>
+            </button>
+        </div>
+
+        <div class="gps-hint" id="gpsHint">📍 Enter warehouse zone to enable punching</div>
+
+        <!-- ── STATUS ── -->
+        <div id="statusMsg"></div>
+
+    </div>
+    <div class="card-footer">
+        <span class="footer-date" id="footerDate">—</span>
+        <span class="footer-time" id="footerTime">—</span>
+    </div>
+</div>
+
+
+<script>
+// ╔══════════════════════════════════════════╗
+//   CONFIGURATION — edit here only
+// ╚══════════════════════════════════════════╝
+const CFG = {
+    WAREHOUSE_LAT:  8.202612,
+    WAREHOUSE_LON:  77.240076,
+    MAX_DIST_M:     50,          // geofence radius in metres
+    STABILITY_NEED: 3,           // readings needed inside zone to unlock
+    BUFFER_SIZE:    5,           // GPS rolling window size
+    GAS_URL:        'https://script.google.com/macros/s/AKfycbztj_cU2LtHlHztnFk9wP84pDe8BwLbtzfSoiZfVwT_d5cc4PDjM_qTV9m9LPUxfPbj6Q/exec',
+    AUTH_TOKEN:     'IBI_ATTEND_2026',  // shared secret — must match GAS
+};
+
+// ╔══════════════════════════════════════════╗
+//   APP STATE
+// ╚══════════════════════════════════════════╝
+const ST = {
+    staff:      '',
+    punchState: null,   // 'IN' | 'OUT' | null
+    punches:    [],     // [{type:'IN'|'OUT', time:'09:15 AM'}]
+    gpsBuffer:  [],     // rolling array of booleans (true = in zone)
+    gpsSteady:  false,  // ≥ STABILITY_NEED valid readings
+    gpsLat:     null,
+    gpsLon:     null,
+    gpsAcc:     null,
+    syncing:    false,
+    submitting: false,
+    watchId:    null,
+};
+
+// ╔══════════════════════════════════════════╗
+//   THEME
+// ╚══════════════════════════════════════════╝
+(function () {
+    const t = localStorage.getItem('ibi_theme') || 'dark';
+    if (t === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.getElementById('themeBtn').textContent = '☀️';
+    }
+})();
+
+function toggleTheme() {
+    const light = document.documentElement.getAttribute('data-theme') === 'light';
+    if (light) {
+        document.documentElement.removeAttribute('data-theme');
+        document.getElementById('themeBtn').textContent = '🌙';
+        localStorage.setItem('ibi_theme', 'dark');
+    } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.getElementById('themeBtn').textContent = '☀️';
+        localStorage.setItem('ibi_theme', 'light');
+    }
+}
+
+// ╔══════════════════════════════════════════╗
+//   CLOCK
+// ╚══════════════════════════════════════════╝
+function tickClock() {
+    const n = new Date();
+    document.getElementById('footerDate').textContent =
+        n.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    document.getElementById('footerTime').textContent =
+        n.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+// ╔══════════════════════════════════════════╗
+//   HAVERSINE DISTANCE
+// ╚══════════════════════════════════════════╝
+function haversine(lat1, lon1, lat2, lon2) {
+    const R  = 6371000;
+    const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const a  = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+    return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+// ╔══════════════════════════════════════════╗
+//   GPS WATCH  (stability-buffered)
+// ╚══════════════════════════════════════════╝
+function startGPS() {
+    if (!navigator.geolocation) {
+        setGPSBadge('gps-error', 'GPS Not Supported');
+        return;
+    }
+    ST.watchId = navigator.geolocation.watchPosition(onGPSOk, onGPSErr, {
+        enableHighAccuracy: true,
+        timeout:            15000,
+        maximumAge:         4000,
+    });
+}
+
+function onGPSOk(pos) {
+    const lat  = pos.coords.latitude;
+    const lon  = pos.coords.longitude;
+    const acc  = Math.round(pos.coords.accuracy);
+    const dist = haversine(lat, lon, CFG.WAREHOUSE_LAT, CFG.WAREHOUSE_LON);
+    const inZn = dist <= CFG.MAX_DIST_M;
+
+    ST.gpsLat = lat;
+    ST.gpsLon = lon;
+    ST.gpsAcc = acc;
+
+    // Rolling buffer
+    ST.gpsBuffer.push(inZn);
+    if (ST.gpsBuffer.length > CFG.BUFFER_SIZE) ST.gpsBuffer.shift();
+
+    const validN   = ST.gpsBuffer.filter(Boolean).length;
+    const allOut   = ST.gpsBuffer.length >= CFG.BUFFER_SIZE && validN === 0;
+    ST.gpsSteady   = validN >= CFG.STABILITY_NEED;
+
+    // UI
+    document.getElementById('distVal').textContent = dist + ' m';
+    document.getElementById('accVal').textContent  = '± ' + acc + ' m';
+    renderStabilityDots(validN);
+
+    const ss = document.getElementById('stabStatus');
+    if (ST.gpsSteady) {
+        setGPSBadge('onsite', 'On-Site Verified ✓');
+        ss.textContent = 'LOCKED';
+        ss.className   = 'stab-status locked';
+    } else if (allOut) {
+        setGPSBadge('offsite', 'Outside Zone');
+        ss.textContent = 'OUTSIDE';
+        ss.className   = 'stab-status outside';
+    } else {
+        setGPSBadge('acquiring', 'Stabilizing...');
+        ss.textContent = validN + ' / ' + CFG.STABILITY_NEED;
+        ss.className   = 'stab-status';
+    }
+
+    refreshButtons();
+}
+
+function onGPSErr(e) {
+    const msg = {1:'Location Denied', 2:'Searching Signal...', 3:'GPS Timeout'};
+    setGPSBadge('gps-error', msg[e.code] || 'GPS Error');
+    document.getElementById('distVal').textContent = '—';
+    document.getElementById('accVal').textContent  = '—';
+    document.getElementById('stabStatus').textContent = 'No GPS';
+}
+
+function setGPSBadge(cls, label) {
+    const b = document.getElementById('gpsBadge');
+    b.className = 'gps-badge ' + cls;
+    document.getElementById('gpsLabel').textContent = label;
+    const d = b.querySelector('.badge-dot');
+    d.className = 'badge-dot' + (cls === 'acquiring' ? ' pulsing' : '');
+}
+
+function renderStabilityDots(validN) {
+    for (let i = 0; i < CFG.BUFFER_SIZE; i++) {
+        const el = document.getElementById('sd' + i);
+        const v  = ST.gpsBuffer[i];
+        el.className = 's-dot' + (v === true ? ' valid' : v === false ? ' invalid' : '');
+    }
+}
+
+// ╔══════════════════════════════════════════╗
+//   PROFILE CHANGE
+// ╚══════════════════════════════════════════╝
+function onProfileChange() {
+    const name = document.getElementById('staffName').value;
+    ST.staff      = name;
+    ST.punchState = null;
+    ST.punches    = [];
+    localStorage.setItem('ibi_last_profile', name);
+    renderTimeline();
+    showLoadingSkeleton();
+    refreshButtons();
+    syncFromServer();
+}
+
+// ╔══════════════════════════════════════════╗
+//   SERVER SYNC  (doGet → current state)
+// ╚══════════════════════════════════════════╝
+function syncFromServer() {
+    if (!ST.staff || ST.syncing) return;
+    ST.syncing = true;
+
+    const btn  = document.getElementById('syncBtn');
+    const icon = document.getElementById('syncIcon');
+    btn.disabled = true;
+    icon.parentElement.classList.add('spinning');
+
+    const url = CFG.GAS_URL +
+        '?action=getState' +
+        '&staffName=' + encodeURIComponent(ST.staff) +
+        '&token='     + CFG.AUTH_TOKEN;
+
+    fetch(url)
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                ST.punchState = d.currentState || 'OUT';
+                ST.punches    = d.punches || [];
+                localStorage.setItem('ibi_state_' + ST.staff, d.currentState);
+            } else {
+                fallbackState();
+            }
+        })
+        .catch(fallbackState)
+        .finally(() => {
+            ST.syncing = false;
+            btn.disabled = false;
+            icon.parentElement.classList.remove('spinning');
+            renderTimeline();
+            refreshButtons();
+        });
+}
+
+function fallbackState() {
+    const cached = localStorage.getItem('ibi_state_' + ST.staff);
+    ST.punchState = (cached === 'IN' || cached === 'OUT') ? cached : 'OUT';
+}
+
+// ╔══════════════════════════════════════════╗
+//   BUTTON STATE
+// ╚══════════════════════════════════════════╝
+function refreshButtons() {
+    const inBtn  = document.getElementById('inBtn');
+    const outBtn = document.getElementById('outBtn');
+    const inAux  = document.getElementById('inAux');
+    const outAux = document.getElementById('outAux');
+    const hint   = document.getElementById('gpsHint');
+
+    inBtn.classList.remove('active');
+    outBtn.classList.remove('active');
+
+    if (!ST.staff) {
+        inBtn.disabled  = true;
+        outBtn.disabled = true;
+        inAux.textContent  = '🔒';
+        outAux.textContent = '🔒';
+        hint.style.display = 'none';
+        return;
+    }
+
+    const gpsOk  = ST.gpsSteady;
+    const notBusy = !ST.submitting;
+    hint.style.display = gpsOk ? 'none' : 'block';
+
+    if (ST.punchState === 'IN') {
+        // Clocked in → can only clock OUT
+        inBtn.disabled  = true;
+        outBtn.disabled = !gpsOk || !notBusy;
+        if (gpsOk && notBusy) outBtn.classList.add('active');
+        inAux.textContent  = '✓';
+        outAux.textContent = gpsOk ? '' : '🔒';
+    } else {
+        // Clocked out (or unknown) → can only clock IN
+        inBtn.disabled  = !gpsOk || !notBusy;
+        outBtn.disabled = true;
+        if (gpsOk && notBusy) inBtn.classList.add('active');
+        inAux.textContent  = gpsOk ? '' : '🔒';
+        outAux.textContent = '✓';
+    }
+}
+
+// ╔══════════════════════════════════════════╗
+//   TIMELINE RENDER
+// ╚══════════════════════════════════════════╝
+function showLoadingSkeleton() {
+    const tl = document.getElementById('timeline');
+    tl.innerHTML = '';
+    const row = document.createElement('div');
+    row.className = 'tl-loading';
+    row.innerHTML = `<div class="skel" style="width:34px;height:22px"></div>
+                     <div class="skel" style="width:80px;height:16px"></div>`;
+    tl.appendChild(row);
+    document.getElementById('shiftPill').textContent = '…';
+}
+
+function renderTimeline() {
+    const tl    = document.getElementById('timeline');
+    const pill  = document.getElementById('shiftPill');
+    const empty = document.getElementById('tlEmpty');
+
+    tl.innerHTML = '';
+
+    if (!ST.staff) {
+        const e = document.createElement('div');
+        e.className = 'tl-empty';
+        e.textContent = 'Select a profile to view activity';
+        tl.appendChild(e);
+        pill.textContent = '—';
+        return;
+    }
+
+    if (!ST.punches || ST.punches.length === 0) {
+        const e = document.createElement('div');
+        e.className = 'tl-empty';
+        e.textContent = 'No punches recorded yet today';
+        tl.appendChild(e);
+        pill.textContent = '0 / 10';
+        return;
+    }
+
+    pill.textContent = ST.punches.length + ' / 10';
+
+    ST.punches.forEach(p => {
+        const isIn = p.type === 'IN';
+        const row  = document.createElement('div');
+        row.className = 'tl-row';
+
+        const node  = document.createElement('div');
+        node.className = 'tl-node ' + (isIn ? 'in-node' : 'out-node');
+
+        const badge = document.createElement('span');
+        badge.className = 'tl-type ' + (isIn ? 'in' : 'out');
+        badge.textContent = p.type;
+
+        const time = document.createElement('span');
+        time.className = 'tl-time';
+        time.textContent = p.time;
+
+        row.appendChild(node);
+        row.appendChild(badge);
+        row.appendChild(time);
+
+        if (p.pending) {
+            const pend = document.createElement('span');
+            pend.className = 'tl-pending';
+            pend.textContent = '⚠ pending';
+            row.appendChild(pend);
+        }
+
+        tl.appendChild(row);
+    });
+}
+
+// ╔══════════════════════════════════════════╗
+//   PUNCH SUBMISSION
+// ╚══════════════════════════════════════════╝
+function submitPunch(action) {
+    if (ST.submitting) return;
+    if (!ST.staff)     { showStatus('Please select your profile first.', 'error'); return; }
+    if (!ST.gpsSteady) { showStatus('Outside warehouse zone. Move closer and wait for GPS lock.', 'error'); return; }
+
+    ST.submitting = true;
+    refreshButtons();
+    showStatus('Verifying location...', 'warning');
+
+    // Final fresh GPS reading before committing
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const lat  = pos.coords.latitude;
+            const lon  = pos.coords.longitude;
+            const dist = haversine(lat, lon, CFG.WAREHOUSE_LAT, CFG.WAREHOUSE_LON);
+
+            if (dist > CFG.MAX_DIST_M) {
+                showStatus(`Location re-check failed: ${dist}m away. Must be within ${CFG.MAX_DIST_M}m.`, 'error');
+                // Invalidate buffer so staff must re-stabilise
+                ST.gpsBuffer  = [];
+                ST.gpsSteady  = false;
+                ST.submitting = false;
+                refreshButtons();
+                return;
+            }
+
+            showStatus('Location confirmed — recording punch...', 'warning');
+            postPunchToGAS(action, lat, lon, pos.coords.accuracy);
+        },
+        err => {
+            showStatus('GPS check failed. Please try again.', 'error');
+            ST.submitting = false;
+            refreshButtons();
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+}
+
+function postPunchToGAS(action, lat, lon, acc) {
+    const fd = new FormData();
+    fd.append('staffName', ST.staff);
+    fd.append('action',    action);
+    fd.append('lat',       lat.toFixed(6));
+    fd.append('lon',       lon.toFixed(6));
+    fd.append('accuracy',  Math.round(acc));
+    fd.append('token',     CFG.AUTH_TOKEN);
+
+    fetch(CFG.GAS_URL, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                const timeStr = new Date().toLocaleTimeString('en-IN',
+                    { hour: '2-digit', minute: '2-digit', hour12: true });
+                ST.punchState = action;
+                ST.punches.push({ type: action, time: timeStr });
+                localStorage.setItem('ibi_state_' + ST.staff, action);
+                localStorage.removeItem('ibi_pending');
+                hidePendingBanner();
+                renderTimeline();
+                speakThankYou();
+                showStatus(`✓ ${action} recorded at ${timeStr}`, 'success');
+            } else {
+                showStatus(d.message || 'Server error. Please try again.', 'error');
+            }
+        })
+        .catch(() => {
+            savePendingPunch(action, lat, lon, acc);
+        })
+        .finally(() => {
+            ST.submitting = false;
+            refreshButtons();
+        });
+}
+
+// ╔══════════════════════════════════════════╗
+//   OFFLINE RETRY QUEUE
+// ╚══════════════════════════════════════════╝
+function savePendingPunch(action, lat, lon, acc) {
+    const timeStr = new Date().toLocaleTimeString('en-IN',
+        { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const p = { staffName: ST.staff, action, lat: lat.toFixed(6),
+                lon: lon.toFixed(6), accuracy: Math.round(acc),
+                timestamp: timeStr, retries: 0 };
+
+    localStorage.setItem('ibi_pending', JSON.stringify(p));
+
+    // Optimistic local update
+    ST.punchState = action;
+    ST.punches.push({ type: action, time: timeStr, pending: true });
+    localStorage.setItem('ibi_state_' + ST.staff, action);
+
+    renderTimeline();
+    showPendingBanner(`${action} at ${timeStr} · queued — will retry on reconnect`);
+    showStatus('Network error. Punch saved offline and will retry automatically.', 'warning');
+}
+
+function retryPending() {
+    const raw = localStorage.getItem('ibi_pending');
+    if (!raw) return;
+    let p;
+    try { p = JSON.parse(raw); } catch { localStorage.removeItem('ibi_pending'); return; }
+    if (p.retries > 6) { localStorage.removeItem('ibi_pending'); hidePendingBanner(); return; }
+
+    showPendingBanner(`Retrying ${p.action} from ${p.timestamp}...`);
+
+    const fd = new FormData();
+    Object.entries(p).forEach(([k, v]) => fd.append(k, v));
+    fd.set('token', CFG.AUTH_TOKEN);
+
+    fetch(CFG.GAS_URL, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                localStorage.removeItem('ibi_pending');
+                hidePendingBanner();
+                showStatus('Pending punch synced to server.', 'success');
+                syncFromServer();
+            } else {
+                p.retries++;
+                localStorage.setItem('ibi_pending', JSON.stringify(p));
+            }
+        })
+        .catch(() => {
+            p.retries++;
+            localStorage.setItem('ibi_pending', JSON.stringify(p));
+        });
+}
+
+function showPendingBanner(msg) {
+    document.getElementById('offlineText').textContent = msg;
+    document.getElementById('offlineBanner').classList.add('visible');
+}
+
+function hidePendingBanner() {
+    document.getElementById('offlineBanner').classList.remove('visible');
+}
+
+// ╔══════════════════════════════════════════╗
+//   STATUS MESSAGE
+// ╚══════════════════════════════════════════╝
+let _statusTimer;
+function showStatus(msg, type) {
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;
+    el.className   = type;
+    el.style.display = 'block';
+    clearTimeout(_statusTimer);
+    if (type === 'success') _statusTimer = setTimeout(() => { el.style.display = 'none'; }, 8000);
+}
+
+// ╔══════════════════════════════════════════╗
+//   SPEECH
+// ╚══════════════════════════════════════════╝
+function speakThankYou() {
+    if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance('Thank you, from India Business International');
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+    }
+}
+
+// ╔══════════════════════════════════════════╗
+//   INIT
+// ╚══════════════════════════════════════════╝
+window.addEventListener('load', () => {
+    // Restore saved profile
+    const saved = localStorage.getItem('ibi_last_profile');
+    if (saved) {
+        const sel = document.getElementById('staffName');
+        sel.value = saved;
+        if (sel.value) {
+            ST.staff = saved;
+            fallbackState();
+            renderTimeline();
+            refreshButtons();
+            syncFromServer();
+        }
+    }
+
+    startGPS();
+
+    // Retry any pending offline punch
+    if (localStorage.getItem('ibi_pending')) {
+        const raw = localStorage.getItem('ibi_pending');
+        try {
+            const p = JSON.parse(raw);
+            showPendingBanner(`Pending punch found: ${p.action} at ${p.timestamp}`);
+        } catch {}
+        setTimeout(retryPending, 4000);
+    }
+});
+
+// Auto-retry when browser comes back online
+window.addEventListener('online', retryPending);
+</script>
+
+</body>
+</html>
