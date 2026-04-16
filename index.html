@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IBI Staff Attendance</title>
+
+    <!-- Favicon: "IBI" in #00c5ff on black -->
+    <link rel="icon" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23000000'/%3E%3Ctext x='50%25' y='54%25' font-family='Roboto%2CArial%2Csans-serif' font-size='22' font-weight='900' fill='%2300c5ff' text-anchor='middle' dominant-baseline='central' letter-spacing='1'%3EIBI%3C/text%3E%3C/svg%3E" type="image/svg+xml">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+/* ═══════════════════════════════════════════════
+   RESET + DESIGN TOKENS
+═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --cyan:       #00c5ff;
+    --cyan-dim:   rgba(0,197,255,.10);
+    --cyan-bdr:   rgba(0,197,255,.28);
+    --bg:         #0a0a0a;
+    --card:       #111111;
+    --surf:       #1a1a1a;
+    --surf2:      #222222;
+    --bdr:        rgba(255,255,255,.08);
+    --bdr-hi:     rgba(0,197,255,.30);
+    --t1:         #f0f0f0;
+    --t2:         #888888;
+    --t3:         #3e3e3e;
+    --green:      #00e676;
+    --green-bg:   rgba(0,230,118,.10);
+    --green-bdr:  rgba(0,230,118,.28);
+    --red:        #ff5252;
+    --red-bg:     rgba(255,82,82,.10);
+    --red-bdr:    rgba(255,82,82,.28);
+    --amber:      #ffab40;
+    --amber-bg:   rgba(255,171,64,.10);
+    --amber-bdr:  rgba(255,171,64,.28);
+    --r:          12px;
+    --sans:       'Roboto', sans-serif;
+    --mono:       'Roboto Mono', monospace;
+}
+
+[data-theme="light"] {
+    --bg:         #edf1f5;
+    --card:       #ffffff;
+    --surf:       #f3f6f9;
+    --surf2:      #e7ecf0;
+    --bdr:        rgba(0,0,0,.09);
+    --bdr-hi:     rgba(0,140,185,.35);
+    --cyan:       #0086b3;
+    --cyan-dim:   rgba(0,134,179,.09);
+    --cyan-bdr:   rgba(0,134,179,.30);
+    --t1:         #111111;
+    --t2:         #555555;
+    --t3:         #b8b8b8;
+    --green:      #00903d;
+    --green-bg:   rgba(0,144,61,.08);
+    --green-bdr:  rgba(0,144,61,.28);
+    --red:        #c62828;
+    --red-bg:     rgba(198,40,40,.08);
+    --red-bdr:    rgba(198,40,40,.28);
+    --amber:      #bf5e00;
+    --amber-bg:   rgba(191,94,0,.08);
+    --amber-bdr:  rgba(191,94,0,.28);
+}
+
+html { height: 100%; }
+
+body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--t1);
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 40px;
+    transition: background .3s, color .3s;
+}
+
+/* ═══════════════════════════════════════════════
+   APP HEADER — always black, always #00c5ff text
+═══════════════════════════════════════════════ */
+.app-header {
+    width: 100%;
+    background: #000000;
+    border-bottom: 1px solid rgba(0,197,255,.20);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    min-height: 66px;
+}
+
+.hdr-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+/* Logo */
+.logo-img {
+    height: 44px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+    flex-shrink: 0;
+}
+
+/* SVG fallback logo rendered when logo.png is missing */
+.logo-svg {
+    display: none;
+    flex-shrink: 0;
+}
+
+.hdr-divider {
+    width: 1px;
+    height: 28px;
+    background: rgba(0,197,255,.30);
+    flex-shrink: 0;
+}
+
+.hdr-text { line-height: 1.15; min-width: 0; }
+
+.hdr-title {
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 900;
+    color: #00c5ff;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    display: block;
+    white-space: nowrap;
+}
+
+.hdr-sub {
+    font-size: 9.5px;
+    font-weight: 500;
+    color: rgba(0,197,255,.50);
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    display: block;
+    margin-top: 2px;
+}
+
+/* ── TOGGLE SWITCH ─────────────────── */
+.toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.toggle-lbl {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.30);
+    user-select: none;
+}
+
+.sw {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    cursor: pointer;
+}
+
+.sw input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+.sw-track {
+    position: absolute;
+    inset: 0;
+    background: #2a2a2a;
+    border: 1px solid rgba(0,197,255,.22);
+    border-radius: 12px;
+    transition: background .25s, border-color .25s;
+}
+
+.sw input:checked ~ .sw-track {
+    background: rgba(0,197,255,.20);
+    border-color: rgba(0,197,255,.50);
+}
+
+.sw-knob {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 16px; height: 16px;
+    background: #555;
+    border-radius: 50%;
+    transition: transform .25s, background .25s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    line-height: 1;
+}
+
+.sw input:checked ~ .sw-knob {
+    transform: translateX(20px);
+    background: #00c5ff;
+}
+
+/* ═══════════════════════════════════════════════
+   PAGE CONTENT
+═══════════════════════════════════════════════ */
+.page {
+    width: 100%;
+    max-width: 440px;
+    padding: 18px 14px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    animation: up .4s cubic-bezier(.22,1,.36,1) both;
+}
+
+@keyframes up {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════
+   CARD
+═══════════════════════════════════════════════ */
+.card {
+    background: var(--card);
+    border: 1px solid var(--bdr);
+    border-radius: var(--r);
+    overflow: hidden;
+    transition: background .3s, border-color .3s;
+}
+
+/* Black header bar on every card */
+.card-hd {
+    background: #000000;
+    border-bottom: 1px solid rgba(0,197,255,.16);
+    padding: 9px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-hd-lbl {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: #00c5ff;
+}
+
+.card-bd { padding: 15px; }
+
+/* ═══════════════════════════════════════════════
+   STAFF SELECTOR
+═══════════════════════════════════════════════ */
+.sel-wrap { position: relative; }
+
+.sel-wrap::after {
+    content: '';
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid var(--cyan);
+    pointer-events: none;
+}
+
+select#staffName {
+    width: 100%;
+    padding: 13px 42px 13px 14px;
+    font-size: 15px;
+    font-family: var(--sans);
+    font-weight: 500;
+    background: var(--surf);
+    color: var(--t1);
+    border: 1px solid var(--bdr-hi);
+    border-radius: 10px;
+    appearance: none;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+select#staffName:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px var(--cyan-dim);
+}
+
+/* ═══════════════════════════════════════════════
+   GPS PANEL
+═══════════════════════════════════════════════ */
+.gps-toprow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 13px;
+}
+
+.gps-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    transition: all .3s;
+    border: 1px solid;
+}
+
+.gps-badge.acquiring { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-bdr); }
+.gps-badge.onsite    { background: var(--green-bg);  color: var(--green);  border-color: var(--green-bdr); }
+.gps-badge.offsite   { background: var(--red-bg);    color: var(--red);    border-color: var(--red-bdr); }
+.gps-badge.gps-error { background: var(--red-bg);    color: var(--red);    border-color: var(--red-bdr); }
+
+.bdot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.bdot.pulse { animation: blink 1.1s ease-in-out infinite; }
+
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:.2; transform:scale(.65); } }
+
+/* Sync button */
+.sync-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: 1px solid var(--bdr);
+    color: var(--t2);
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: border-color .2s, color .2s;
+}
+
+.sync-btn:hover  { border-color: var(--bdr-hi); color: var(--cyan); }
+.sync-btn:disabled { opacity: .4; cursor: not-allowed; }
+.sync-btn.spinning svg { animation: spin .8s linear infinite; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* GPS data cells */
+.gps-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 13px;
+}
+
+.gps-cell {
+    background: var(--surf2);
+    border: 1px solid var(--bdr);
+    border-radius: 9px;
+    padding: 10px 13px;
+}
+
+.gc-lbl {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--t3);
+    margin-bottom: 5px;
+    font-family: var(--sans);
+}
+
+.gc-val {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--t1);
+}
+
+.gc-val.cyan { color: var(--cyan); }
+
+/* Signal stability */
+.stab-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stab-lbl {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    color: var(--t2);
+    width: 46px;
+    flex-shrink: 0;
+}
+
+.stab-dots { display: flex; gap: 6px; flex: 1; }
+
+.sd {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--t3);
+    border: 1px solid transparent;
+    transition: background .3s, transform .2s;
+}
+
+.sd.ok  { background: var(--green); border-color: var(--green-bdr); transform: scale(1.1); }
+.sd.bad { background: var(--red);   border-color: var(--red-bdr); }
+
+.stab-txt {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--t2);
+    min-width: 54px;
+    text-align: right;
+}
+
+.stab-txt.locked  { color: var(--green); }
+.stab-txt.outside { color: var(--red); }
+
+/* ═══════════════════════════════════════════════
+   OFFLINE BANNER
+═══════════════════════════════════════════════ */
+.offline-banner {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-bdr);
+    border-radius: 10px;
+    padding: 11px 14px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--amber);
+    line-height: 1.4;
+}
+
+.offline-banner.show { display: flex; }
+
+/* ═══════════════════════════════════════════════
+   PUNCH TIMELINE
+═══════════════════════════════════════════════ */
+.shift-pill {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--cyan);
+    background: var(--cyan-dim);
+    border: 1px solid var(--cyan-bdr);
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 20px;
+    min-height: 40px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px; top: 10px; bottom: 10px;
+    width: 1px;
+    background: var(--bdr);
+}
+
+.tl-empty {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-style: italic;
+    color: var(--t3);
+    padding: 6px 0;
+}
+
+.tl-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 7px 0;
+    position: relative;
+}
+
+.tl-nd {
+    position: absolute;
+    left: -16px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid;
+}
+
+.tl-nd.in  { border-color: var(--cyan); background: var(--cyan-dim); }
+.tl-nd.out { border-color: var(--red);  background: var(--red-bg); }
+
+.tl-badge {
+    font-family: var(--sans);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    padding: 2px 9px;
+    border-radius: 4px;
+    min-width: 36px;
+    text-align: center;
+    border: 1px solid;
+}
+
+.tl-badge.in  { background: var(--cyan-dim); color: var(--cyan); border-color: var(--cyan-bdr); }
+.tl-badge.out { background: var(--red-bg);   color: var(--red);  border-color: var(--red-bdr); }
+
+.tl-time {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--t1);
+    letter-spacing: .02em;
+}
+
+.tl-pend {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--amber);
+    margin-left: 2px;
+}
+
+.tl-skel { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+
+.skel {
+    background: var(--bdr);
+    border-radius: 4px;
+    animation: shim 1.4s ease-in-out infinite;
+}
+
+@keyframes shim { 0%,100% { opacity:.4; } 50% { opacity:.9; } }
+
+/* ═══════════════════════════════════════════════
+   PUNCH BUTTONS
+═══════════════════════════════════════════════ */
+.btn-grp { display: flex; flex-direction: column; gap: 12px; }
+
+.punch-btn {
+    width: 100%;
+    height: 68px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    border-radius: 12px;
+    border: 1.5px solid;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    transition: transform .12s, box-shadow .2s, opacity .3s;
+}
+
+.punch-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background .15s;
+}
+
+.punch-btn:hover:not(:disabled)::after { background: rgba(255,255,255,.06); }
+.punch-btn:active:not(:disabled) { transform: scale(0.974); }
+.punch-btn:disabled { cursor: not-allowed; opacity: .20; box-shadow: none !important; }
+
+.btn-in {
+    background: var(--green-bg);
+    color: var(--green);
+    border-color: var(--green-bdr);
+}
+
+.btn-in.active {
+    background: var(--green);
+    color: #000;
+    border-color: var(--green);
+    box-shadow: 0 6px 26px rgba(0,230,118,.30);
+}
+
+.btn-out {
+    background: var(--red-bg);
+    color: var(--red);
+    border-color: var(--red-bdr);
+}
+
+.btn-out.active {
+    background: var(--red);
+    color: #fff;
+    border-color: var(--red);
+    box-shadow: 0 6px 26px rgba(255,82,82,.28);
+}
+
+.btn-ico { font-size: 20px; line-height: 1; }
+.btn-aux { font-size: 14px; opacity: .65; }
+
+.gps-hint {
+    text-align: center;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--t3);
+    margin-top: 8px;
+    letter-spacing: .02em;
+    display: none;
+}
+
+/* ═══════════════════════════════════════════════
+   STATUS
+═══════════════════════════════════════════════ */
+#statusMsg {
+    border-radius: 10px;
+    padding: 12px 15px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.5;
+    margin-top: 12px;
+    display: none;
+    border: 1px solid;
+}
+
+#statusMsg.success { background: var(--green-bg); color: var(--green); border-color: var(--green-bdr); }
+#statusMsg.error   { background: var(--red-bg);   color: var(--red);   border-color: var(--red-bdr); }
+#statusMsg.warning { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-bdr); }
+
+/* ═══════════════════════════════════════════════
+   FOOTER CLOCK — black bg, cyan text
+═══════════════════════════════════════════════ */
+.clock-bar {
+    background: #000000;
+    border-top: 1px solid rgba(0,197,255,.16);
+    padding: 10px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.clock-date {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: rgba(0,197,255,.50);
+    letter-spacing: .04em;
+}
+
+.clock-time {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(0,197,255,.85);
+    letter-spacing: .04em;
+}
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════  HEADER  ═══════════════ -->
+<header class="app-header">
+    <div class="hdr-left">
+
+        <!-- Primary: logo.png from GitHub repo -->
+        <img class="logo-img" src="logo.png" alt="India Business International"
+             onerror="this.style.display='none'; document.getElementById('logoSvg').style.display='block';">
+
+        <!-- SVG fallback (matches the IBI dot-grid brand exactly) -->
+        <svg id="logoSvg" class="logo-svg" width="38" height="46" viewBox="0 0 38 46" fill="none"
+             xmlns="http://www.w3.org/2000/svg" aria-label="IBI logo">
+            <!-- col 1 small -->
+            <circle cx="5"  cy="5"  r="2.2" fill="#00c5ff" opacity=".45"/>
+            <circle cx="5"  cy="15" r="2.2" fill="#00c5ff" opacity=".55"/>
+            <circle cx="5"  cy="25" r="2.2" fill="#00c5ff" opacity=".55"/>
+            <circle cx="5"  cy="35" r="2.2" fill="#00c5ff" opacity=".55"/>
+            <circle cx="5"  cy="45" r="2.2" fill="#00c5ff" opacity=".45"/>
+            <!-- col 2 medium -->
+            <circle cx="16" cy="5"  r="3.2" fill="#00c5ff" opacity=".75"/>
+            <circle cx="16" cy="15" r="3.2" fill="#00c5ff" opacity=".85"/>
+            <circle cx="16" cy="25" r="3.2" fill="#00c5ff" opacity=".90"/>
+            <circle cx="16" cy="35" r="3.2" fill="#00c5ff" opacity=".85"/>
+            <circle cx="16" cy="45" r="3.2" fill="#00c5ff" opacity=".75"/>
+            <!-- col 3 large -->
+            <circle cx="29" cy="5"  r="4.2" fill="#00c5ff" opacity=".70"/>
+            <circle cx="29" cy="15" r="4.2" fill="#00c5ff"/>
+            <circle cx="29" cy="25" r="4.2" fill="#00c5ff"/>
+            <circle cx="29" cy="35" r="4.2" fill="#00c5ff"/>
+            <circle cx="29" cy="45" r="4.2" fill="#00c5ff" opacity=".70"/>
+        </svg>
+
+        <div class="hdr-divider"></div>
+
+        <div class="hdr-text">
+            <span class="hdr-title">IBI Attendance</span>
+            <span class="hdr-sub">Warehouse · Kanyakumari</span>
+        </div>
+    </div>
+
+    <!-- Light / Dark toggle -->
+    <div class="toggle-wrap">
+        <span class="toggle-lbl" id="tLbl">Light</span>
+        <label class="sw" title="Toggle light / dark mode">
+            <input type="checkbox" id="themeChk" onchange="doTheme(this)">
+            <div class="sw-track"></div>
+            <div class="sw-knob">☀</div>
+        </label>
+    </div>
+</header>
+
+
+<!-- ═══════════════  PAGE  ═══════════════ -->
+<div class="page">
+
+    <!-- STAFF PROFILE -->
+    <div class="card">
+        <div class="card-hd"><span class="card-hd-lbl">Staff Profile</span></div>
+        <div class="card-bd">
+            <div class="sel-wrap">
+                <select id="staffName" onchange="onProfile()">
+                    <option value="" disabled selected>— Select Your Name —</option>
+                    <option value="S. Aswin">S. Aswin · Packaging Manager</option>
+                    <option value="M. Ajay">M. Ajay · Catalogue Manager</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- GEOFENCE STATUS -->
+    <div class="card">
+        <div class="card-hd"><span class="card-hd-lbl">Geofence Status</span></div>
+        <div class="card-bd">
+            <div class="gps-toprow">
+                <div id="gpsBadge" class="gps-badge acquiring">
+                    <span class="bdot pulse"></span>
+                    <span id="gpsLbl">Initializing GPS</span>
+                </div>
+                <button class="sync-btn" id="syncBtn" onclick="doSync()">
+                    <svg id="syncIco" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <polyline points="1 20 1 14 7 14"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                    Sync
+                </button>
+            </div>
+
+            <div class="gps-grid">
+                <div class="gps-cell">
+                    <div class="gc-lbl">Distance</div>
+                    <div class="gc-val cyan" id="distVal">—</div>
+                </div>
+                <div class="gps-cell">
+                    <div class="gc-lbl">Accuracy</div>
+                    <div class="gc-val" id="accVal">—</div>
+                </div>
+            </div>
+
+            <div class="stab-row">
+                <span class="stab-lbl">Signal</span>
+                <div class="stab-dots">
+                    <div class="sd" id="sd0"></div>
+                    <div class="sd" id="sd1"></div>
+                    <div class="sd" id="sd2"></div>
+                    <div class="sd" id="sd3"></div>
+                    <div class="sd" id="sd4"></div>
+                </div>
+                <span class="stab-txt" id="stabTxt">Acquiring...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- OFFLINE BANNER -->
+    <div class="offline-banner" id="offBanner">
+        <span style="font-size:16px;flex-shrink:0">⚠</span>
+        <span id="offTxt">Pending punch queued — will retry on reconnect</span>
+    </div>
+
+    <!-- TODAY'S ACTIVITY -->
+    <div class="card">
+        <div class="card-hd">
+            <span class="card-hd-lbl">Today's Activity</span>
+            <span class="shift-pill" id="shiftPill">—</span>
+        </div>
+        <div class="card-bd">
+            <div class="timeline" id="timeline">
+                <div class="tl-empty" id="tlEmpty">No punches recorded yet today</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ATTENDANCE ACTION -->
+    <div class="card">
+        <div class="card-hd"><span class="card-hd-lbl">Attendance Action</span></div>
+        <div class="card-bd">
+            <div class="btn-grp">
+                <button class="punch-btn btn-in"  id="inBtn"  onclick="doPunch('IN')"  disabled>
+                    <span class="btn-ico">↑</span><span>Punch In</span><span class="btn-aux" id="inAux">🔒</span>
+                </button>
+                <button class="punch-btn btn-out" id="outBtn" onclick="doPunch('OUT')" disabled>
+                    <span class="btn-ico">↓</span><span>Punch Out</span><span class="btn-aux" id="outAux">🔒</span>
+                </button>
+            </div>
+            <div class="gps-hint" id="gpsHint">📍 Move into the warehouse zone to enable punching</div>
+            <div id="statusMsg"></div>
+        </div>
+        <div class="clock-bar">
+            <span class="clock-date" id="clkDate">—</span>
+            <span class="clock-time" id="clkTime">—</span>
+        </div>
+    </div>
+
+</div><!-- /page -->
+
+
+<script>
+// ╔══════════════════════════════════════════╗
+//  CONFIGURATION
+// ╚══════════════════════════════════════════╝
+const CFG = {
+    WAREHOUSE_LAT:  8.202612,
+    WAREHOUSE_LON:  77.240076,
+    MAX_DIST_M:     50,
+    STAB_NEED:      3,
+    BUF_SIZE:       5,
+    GAS_URL:        'https://script.google.com/macros/s/AKfycbztj_cU2LtHlHztnFk9wP84pDe8BwLbtzfSoiZfVwT_d5cc4PDjM_qTV9m9LPUxfPbj6Q/exec',
+    TOKEN:          'IBI_ATTEND_2026',
+};
+
+// ╔══════════════════════════════════════════╗
+//  STATE
+// ╚══════════════════════════════════════════╝
+const ST = {
+    staff: '', punchState: null, punches: [],
+    buf: [], steady: false,
+    lat: null, lon: null, acc: null,
+    syncing: false, busy: false,
+};
+
+// ╔══════════════════════════════════════════╗
+//  TIME — "08:51:00 AM" / "03:02:45 PM"
+// ╚══════════════════════════════════════════╝
+function fmtTime(d) {
+    if (!(d instanceof Date)) d = new Date();
+    let h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2,'0');
+    const s = String(d.getSeconds()).padStart(2,'0');
+    const p = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return String(h).padStart(2,'0') + ':' + m + ':' + s + ' ' + p;
+}
+
+// "Thursday, 16 Apr 2026"
+function fmtDate(d) {
+    if (!(d instanceof Date)) d = new Date();
+    const dy = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return dy[d.getDay()] + ', ' +
+           String(d.getDate()).padStart(2,'0') + ' ' +
+           mo[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+// ╔══════════════════════════════════════════╗
+//  THEME
+// ╚══════════════════════════════════════════╝
+(function () {
+    const t = localStorage.getItem('ibi_theme') || 'dark';
+    if (t === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        const chk = document.getElementById('themeChk');
+        chk.checked = true;
+        document.getElementById('tLbl').textContent = 'Dark';
+        document.querySelector('.sw-knob').textContent = '🌙';
+    }
+})();
+
+function doTheme(el) {
+    const lbl   = document.getElementById('tLbl');
+    const knob  = document.querySelector('.sw-knob');
+    if (el.checked) {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('ibi_theme', 'light');
+        lbl.textContent  = 'Dark';
+        knob.textContent = '🌙';
+    } else {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('ibi_theme', 'dark');
+        lbl.textContent  = 'Light';
+        knob.textContent = '☀';
+    }
+}
+
+// ╔══════════════════════════════════════════╗
+//  LIVE CLOCK
+// ╚══════════════════════════════════════════╝
+function tick() {
+    const n = new Date();
+    document.getElementById('clkDate').textContent = fmtDate(n);
+    document.getElementById('clkTime').textContent = fmtTime(n);
+}
+tick();
+setInterval(tick, 1000);
+
+// ╔══════════════════════════════════════════╗
+//  HAVERSINE
+// ╚══════════════════════════════════════════╝
+function hav(la1, lo1, la2, lo2) {
+    const R = 6371000;
+    const f1 = la1*Math.PI/180, f2 = la2*Math.PI/180;
+    const df = (la2-la1)*Math.PI/180, dl = (lo2-lo1)*Math.PI/180;
+    const a  = Math.sin(df/2)**2 + Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)**2;
+    return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+
+// ╔══════════════════════════════════════════╗
+//  GPS
+// ╚══════════════════════════════════════════╝
+function startGPS() {
+    if (!navigator.geolocation) { gBadge('gps-error','GPS Not Supported'); return; }
+    navigator.geolocation.watchPosition(gOk, gErr,
+        { enableHighAccuracy:true, timeout:15000, maximumAge:4000 });
+}
+
+function gOk(pos) {
+    const la = pos.coords.latitude, lo = pos.coords.longitude;
+    const ac = Math.round(pos.coords.accuracy);
+    const di = hav(la, lo, CFG.WAREHOUSE_LAT, CFG.WAREHOUSE_LON);
+    const ok = di <= CFG.MAX_DIST_M;
+
+    ST.lat = la;  ST.lon = lo;  ST.acc = ac;
+    ST.buf.push(ok);
+    if (ST.buf.length > CFG.BUF_SIZE) ST.buf.shift();
+
+    const n    = ST.buf.filter(Boolean).length;
+    const allO = ST.buf.length >= CFG.BUF_SIZE && n === 0;
+    ST.steady  = n >= CFG.STAB_NEED;
+
+    document.getElementById('distVal').textContent = di + ' m';
+    document.getElementById('accVal').textContent  = '± ' + ac + ' m';
+    drawDots(n);
+
+    const st = document.getElementById('stabTxt');
+    if (ST.steady) {
+        gBadge('onsite','On-Site Verified ✓');
+        st.textContent = 'LOCKED';   st.className = 'stab-txt locked';
+    } else if (allO) {
+        gBadge('offsite','Outside Zone');
+        st.textContent = 'OUTSIDE';  st.className = 'stab-txt outside';
+    } else {
+        gBadge('acquiring','Stabilizing...');
+        st.textContent = n+' / '+CFG.STAB_NEED;  st.className = 'stab-txt';
+    }
+    refreshBtns();
+}
+
+function gErr(e) {
+    const m = {1:'Location Denied',2:'Searching Signal...',3:'GPS Timeout'};
+    gBadge('gps-error', m[e.code]||'GPS Error');
+    document.getElementById('distVal').textContent =
+    document.getElementById('accVal').textContent  = '—';
+}
+
+function gBadge(cls, lbl) {
+    const b = document.getElementById('gpsBadge');
+    b.className = 'gps-badge '+cls;
+    document.getElementById('gpsLbl').textContent = lbl;
+    const d = b.querySelector('.bdot');
+    d.className = 'bdot'+(cls==='acquiring'?' pulse':'');
+}
+
+function drawDots(n) {
+    for (let i=0; i<CFG.BUF_SIZE; i++) {
+        const el = document.getElementById('sd'+i);
+        const v  = ST.buf[i];
+        el.className = 'sd'+(v===true?' ok':v===false?' bad':'');
+    }
+}
+
+// ╔══════════════════════════════════════════╗
+//  PROFILE
+// ╚══════════════════════════════════════════╝
+function onProfile() {
+    const n = document.getElementById('staffName').value;
+    ST.staff = n;  ST.punchState = null;  ST.punches = [];
+    localStorage.setItem('ibi_last_profile', n);
+    skeleton();  refreshBtns();  doSync();
+}
+
+// ╔══════════════════════════════════════════╗
+//  SERVER SYNC
+// ╚══════════════════════════════════════════╝
+function doSync() {
+    if (!ST.staff || ST.syncing) return;
+    ST.syncing = true;
+    const btn = document.getElementById('syncBtn');
+    btn.disabled = true;
+    btn.classList.add('spinning');
+
+    fetch(CFG.GAS_URL+'?action=getState&staffName='+encodeURIComponent(ST.staff)+'&token='+CFG.TOKEN)
+        .then(r => r.json())
+        .then(d => {
+            if (d.status==='success') {
+                ST.punchState = d.currentState||'OUT';
+                ST.punches    = d.punches||[];
+                localStorage.setItem('ibi_state_'+ST.staff, d.currentState);
+            } else fallbackSt();
+        })
+        .catch(fallbackSt)
+        .finally(() => {
+            ST.syncing = false;
+            btn.disabled = false;
+            btn.classList.remove('spinning');
+            drawTimeline();  refreshBtns();
+        });
+}
+
+function fallbackSt() {
+    const c = localStorage.getItem('ibi_state_'+ST.staff);
+    ST.punchState = (c==='IN'||c==='OUT') ? c : 'OUT';
+}
+
+// ╔══════════════════════════════════════════╗
+//  BUTTONS
+// ╚══════════════════════════════════════════╝
+function refreshBtns() {
+    const iB = document.getElementById('inBtn');
+    const oB = document.getElementById('outBtn');
+    const iA = document.getElementById('inAux');
+    const oA = document.getElementById('outAux');
+    const gh = document.getElementById('gpsHint');
+
+    iB.classList.remove('active');
+    oB.classList.remove('active');
+
+    if (!ST.staff) {
+        iB.disabled = oB.disabled = true;
+        iA.textContent = oA.textContent = '🔒';
+        gh.style.display = 'none';
+        return;
+    }
+
+    const ok = ST.steady, free = !ST.busy;
+    gh.style.display = ok ? 'none' : 'block';
+
+    if (ST.punchState === 'IN') {
+        iB.disabled = true;
+        oB.disabled = !ok||!free;
+        if (ok&&free) oB.classList.add('active');
+        iA.textContent = '✓';
+        oA.textContent = ok ? '' : '🔒';
+    } else {
+        iB.disabled = !ok||!free;
+        oB.disabled = true;
+        if (ok&&free) iB.classList.add('active');
+        iA.textContent = ok ? '' : '🔒';
+        oA.textContent = '✓';
+    }
+}
+
+// ╔══════════════════════════════════════════╗
+//  TIMELINE
+// ╚══════════════════════════════════════════╝
+function skeleton() {
+    const tl = document.getElementById('timeline');
+    tl.innerHTML = '';
+    const r = document.createElement('div');
+    r.className = 'tl-skel';
+    r.innerHTML = '<div class="skel" style="width:36px;height:22px"></div><div class="skel" style="width:120px;height:15px"></div>';
+    tl.appendChild(r);
+    document.getElementById('shiftPill').textContent = '…';
+}
+
+function drawTimeline() {
+    const tl   = document.getElementById('timeline');
+    const pill = document.getElementById('shiftPill');
+    tl.innerHTML = '';
+
+    if (!ST.staff) {
+        empty(tl, 'Select a profile to view activity');
+        pill.textContent = '—';
+        return;
+    }
+    if (!ST.punches||!ST.punches.length) {
+        empty(tl, 'No punches recorded yet today');
+        pill.textContent = '0 / 10';
+        return;
+    }
+
+    pill.textContent = ST.punches.length+' / 10';
+    ST.punches.forEach(p => {
+        const isIn = p.type==='IN';
+        const row  = document.createElement('div');
+        row.className = 'tl-row';
+
+        const nd = document.createElement('div');
+        nd.className = 'tl-nd '+(isIn?'in':'out');
+
+        const bg = document.createElement('span');
+        bg.className = 'tl-badge '+(isIn?'in':'out');
+        bg.textContent = p.type;
+
+        const tm = document.createElement('span');
+        tm.className   = 'tl-time';
+        tm.textContent = p.time;   // always "08:51:00 AM" format
+
+        row.appendChild(nd);
+        row.appendChild(bg);
+        row.appendChild(tm);
+
+        if (p.pending) {
+            const pd = document.createElement('span');
+            pd.className = 'tl-pend';
+            pd.textContent = '⚠ pending';
+            row.appendChild(pd);
+        }
+        tl.appendChild(row);
+    });
+}
+
+function empty(tl, msg) {
+    const e = document.createElement('div');
+    e.className = 'tl-empty';
+    e.textContent = msg;
+    tl.appendChild(e);
+}
+
+// ╔══════════════════════════════════════════╗
+//  PUNCH
+// ╚══════════════════════════════════════════╝
+function doPunch(action) {
+    if (ST.busy) return;
+    if (!ST.staff)  { showMsg('Please select your profile first.', 'error');  return; }
+    if (!ST.steady) { showMsg('Outside warehouse zone. Wait for GPS lock.',   'error'); return; }
+
+    ST.busy = true;
+    refreshBtns();
+    showMsg('Verifying location...', 'warning');
+
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const di = hav(pos.coords.latitude, pos.coords.longitude,
+                           CFG.WAREHOUSE_LAT, CFG.WAREHOUSE_LON);
+            if (di > CFG.MAX_DIST_M) {
+                showMsg('Re-check failed: '+di+'m away. Must be within '+CFG.MAX_DIST_M+'m.', 'error');
+                ST.buf = [];  ST.steady = false;
+                ST.busy = false;  refreshBtns();
+                return;
+            }
+            showMsg('Location confirmed — recording punch...', 'warning');
+            sendPunch(action, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+        },
+        () => {
+            showMsg('GPS check failed. Please try again.', 'error');
+            ST.busy = false;  refreshBtns();
+        },
+        { enableHighAccuracy:true, timeout:12000, maximumAge:0 }
+    );
+}
+
+function sendPunch(action, la, lo, ac) {
+    const fd = new FormData();
+    fd.append('staffName', ST.staff);
+    fd.append('action',    action);
+    fd.append('lat',       la.toFixed(6));
+    fd.append('lon',       lo.toFixed(6));
+    fd.append('accuracy',  Math.round(ac));
+    fd.append('token',     CFG.TOKEN);
+
+    fetch(CFG.GAS_URL, { method:'POST', body:fd })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                const t = fmtTime(new Date());   // "08:51:00 AM"
+                ST.punchState = action;
+                ST.punches.push({ type:action, time:t });
+                localStorage.setItem('ibi_state_'+ST.staff, action);
+                localStorage.removeItem('ibi_pending');
+                hideBanner();  drawTimeline();  speak();
+                showMsg('✓ '+action+' recorded at '+t, 'success');
+            } else {
+                showMsg(d.message||'Server error. Please try again.', 'error');
+            }
+        })
+        .catch(() => savePending(action, la, lo, ac))
+        .finally(() => { ST.busy = false;  refreshBtns(); });
+}
+
+// ╔══════════════════════════════════════════╗
+//  OFFLINE QUEUE
+// ╚══════════════════════════════════════════╝
+function savePending(action, la, lo, ac) {
+    const t = fmtTime(new Date());
+    const p = { staffName:ST.staff, action, lat:la.toFixed(6),
+                lon:lo.toFixed(6), accuracy:Math.round(ac), timestamp:t, retries:0 };
+    localStorage.setItem('ibi_pending', JSON.stringify(p));
+    ST.punchState = action;
+    ST.punches.push({ type:action, time:t, pending:true });
+    localStorage.setItem('ibi_state_'+ST.staff, action);
+    drawTimeline();
+    showBanner(action+' at '+t+' · queued — will retry on reconnect');
+    showMsg('Network error. Punch saved offline and will retry automatically.', 'warning');
+}
+
+function retryPending() {
+    const raw = localStorage.getItem('ibi_pending');
+    if (!raw) return;
+    let p;
+    try { p = JSON.parse(raw); } catch { localStorage.removeItem('ibi_pending'); return; }
+    if (p.retries > 6) { localStorage.removeItem('ibi_pending'); hideBanner(); return; }
+    showBanner('Retrying '+p.action+' from '+p.timestamp+'...');
+    const fd = new FormData();
+    Object.entries(p).forEach(([k,v]) => fd.append(k,v));
+    fd.set('token', CFG.TOKEN);
+    fetch(CFG.GAS_URL, { method:'POST', body:fd })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status==='success') {
+                localStorage.removeItem('ibi_pending');  hideBanner();
+                showMsg('Pending punch synced to server.','success');  doSync();
+            } else { p.retries++;  localStorage.setItem('ibi_pending',JSON.stringify(p)); }
+        })
+        .catch(() => { p.retries++;  localStorage.setItem('ibi_pending',JSON.stringify(p)); });
+}
+
+function showBanner(t) { document.getElementById('offTxt').textContent=t; document.getElementById('offBanner').classList.add('show'); }
+function hideBanner()  { document.getElementById('offBanner').classList.remove('show'); }
+
+// ╔══════════════════════════════════════════╗
+//  STATUS & SPEECH
+// ╚══════════════════════════════════════════╝
+let _t;
+function showMsg(msg, type) {
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;  el.className = type;  el.style.display = 'block';
+    clearTimeout(_t);
+    if (type==='success') _t = setTimeout(()=>el.style.display='none', 9000);
+}
+
+function speak() {
+    if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance('Thank you, from India Business International');
+        u.rate = 0.9;  window.speechSynthesis.speak(u);
+    }
+}
+
+// ╔══════════════════════════════════════════╗
+//  INIT
+// ╚══════════════════════════════════════════╝
+window.addEventListener('load', () => {
+    const saved = localStorage.getItem('ibi_last_profile');
+    if (saved) {
+        const sel = document.getElementById('staffName');
+        sel.value = saved;
+        if (sel.value) {
+            ST.staff = saved;
+            fallbackSt();  drawTimeline();  refreshBtns();  doSync();
+        }
+    }
+    startGPS();
+    const raw = localStorage.getItem('ibi_pending');
+    if (raw) {
+        try { const p=JSON.parse(raw); showBanner('Pending punch: '+p.action+' at '+p.timestamp); }
+        catch {}
+        setTimeout(retryPending, 4000);
+    }
+});
+
+window.addEventListener('online', retryPending);
+</script>
+
+</body>
+</html>
