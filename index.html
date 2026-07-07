@@ -2,8 +2,39 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>IBI Staff Attendance</title>
+    <meta name="description" content="Geofenced staff attendance — punch in / out on-site with GPS verification. An installable PWA by India Business International.">
+
+    <!-- ══════════ Open Graph ══════════ -->
+    <meta property="og:type"            content="website">
+    <meta property="og:site_name"       content="India Business International">
+    <meta property="og:url"             content="https://staff.indiabusinessinternational.online/">
+    <meta property="og:title"           content="IBI Staff Attendance">
+    <meta property="og:description"     content="Geofenced staff attendance — punch in / out on-site with GPS verification. An installable PWA by India Business International.">
+    <meta property="og:image"           content="https://staff.indiabusinessinternational.online/og-banner.png">
+    <meta property="og:image:secure_url" content="https://staff.indiabusinessinternational.online/og-banner.png">
+    <meta property="og:image:type"      content="image/png">
+    <meta property="og:image:width"     content="1200">
+    <meta property="og:image:height"    content="630">
+    <meta property="og:image:alt"       content="IBI Staff Attendance — geofenced attendance tracker by India Business International">
+    <meta property="og:locale"          content="en_IN">
+
+    <!-- ══════════ Twitter Card ══════════ -->
+    <meta name="twitter:card"        content="summary_large_image">
+    <meta name="twitter:title"       content="IBI Staff Attendance">
+    <meta name="twitter:description" content="Geofenced staff attendance — punch in / out on-site with GPS verification.">
+    <meta name="twitter:image"       content="https://staff.indiabusinessinternational.online/og-banner.png">
+    <meta name="twitter:image:alt"   content="IBI Staff Attendance preview banner">
+
+    <!-- ══════════ PWA ══════════ -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="IBI Attendance">
+    <link rel="apple-touch-icon" href="icon-192.png">
 
     <!-- Favicon: "IBI" in #00c5ff on black -->
     <link rel="icon" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23000000'/%3E%3Ctext x='50%25' y='54%25' font-family='Roboto%2CArial%2Csans-serif' font-size='22' font-weight='900' fill='%2300c5ff' text-anchor='middle' dominant-baseline='central' letter-spacing='1'%3EIBI%3C/text%3E%3C/svg%3E" type="image/svg+xml">
@@ -40,7 +71,7 @@
     --amber:      #ffab40;
     --amber-bg:   rgba(255,171,64,.10);
     --amber-bdr:  rgba(255,171,64,.28);
-    --r:          12px;
+    --r:          14px;
     --sans:       'Roboto', sans-serif;
     --mono:       'Roboto Mono', monospace;
 }
@@ -79,8 +110,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-bottom: 40px;
+    padding-bottom: 32px;
     transition: background .3s, color .3s;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* ═══════════════════════════════════════════════
@@ -90,7 +122,7 @@ body {
     width: 100%;
     background: #000000;
     border-bottom: 2px solid rgba(0,197,255,.22);
-    padding: 18px 16px 16px;
+    padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -99,51 +131,101 @@ body {
     z-index: 20;
 }
 
-/* Toggle pinned to top-right of header */
-.toggle-wrap {
+/* Version badge — pinned top-LEFT */
+.ver-badge {
     position: absolute;
-    top: 14px;
-    right: 14px;
+    top: calc(12px + env(safe-area-inset-top));
+    left: 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    color: #00c5ff;
+    background: rgba(0,197,255,.10);
+    border: 1px solid rgba(0,197,255,.32);
+    padding: 3px 9px;
+    border-radius: 20px;
+    z-index: 2;
+}
+
+/* Action cluster — pinned top-RIGHT */
+.hdr-actions {
+    position: absolute;
+    top: calc(11px + env(safe-area-inset-top));
+    right: 12px;
     display: flex;
     align-items: center;
-    gap: 7px;
-    flex-shrink: 0;
+    gap: 9px;
+    z-index: 2;
 }
+
+.install-btn {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #000;
+    background: #00c5ff;
+    border: none;
+    padding: 6px 11px;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(0,197,255,.34);
+    transition: transform .12s, box-shadow .2s;
+}
+.install-btn.show { display: inline-flex; }
+.install-btn:active { transform: scale(.95); }
+
+.menu-btn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    line-height: 1;
+    color: #00c5ff;
+    background: rgba(0,197,255,.08);
+    border: 1px solid rgba(0,197,255,.24);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background .2s, border-color .2s;
+}
+.menu-btn:active { background: rgba(0,197,255,.2); }
 
 /* Logo block — centered, prominent */
 .logo-block {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 9px;
     width: 100%;
+    margin-top: 6px;
 }
 
 .logo-img {
-    height: 56px;
+    height: 60px;
     width: auto;
-    max-width: 260px;
+    max-width: 300px;
     object-fit: contain;
     display: block;
 }
 
-/* SVG fallback (dot-grid) when logo.png is missing */
 .logo-svg { display: none; }
 
-/* Thin cyan rule between logo and title */
 .logo-rule {
-    width: 48px;
+    width: 52px;
     height: 1.5px;
     background: linear-gradient(90deg, transparent, #00c5ff, transparent);
     border: none;
     margin: 0;
 }
 
-/* Title block below logo */
-.hdr-text {
-    text-align: center;
-    line-height: 1.2;
-}
+.hdr-text { text-align: center; line-height: 1.2; }
 
 .hdr-title {
     font-family: var(--sans);
@@ -166,58 +248,26 @@ body {
 }
 
 /* ── TOGGLE SWITCH ─────────────────── */
-
-.toggle-lbl {
-    font-family: var(--sans);
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,.30);
-    user-select: none;
-}
-
-.sw {
-    position: relative;
-    width: 44px;
-    height: 24px;
-    cursor: pointer;
-}
-
+.sw { position: relative; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; }
 .sw input { opacity: 0; width: 0; height: 0; position: absolute; }
-
 .sw-track {
-    position: absolute;
-    inset: 0;
+    position: absolute; inset: 0;
     background: #2a2a2a;
     border: 1px solid rgba(0,197,255,.22);
     border-radius: 12px;
     transition: background .25s, border-color .25s;
 }
-
-.sw input:checked ~ .sw-track {
-    background: rgba(0,197,255,.20);
-    border-color: rgba(0,197,255,.50);
-}
-
+.sw input:checked ~ .sw-track { background: rgba(0,197,255,.20); border-color: rgba(0,197,255,.50); }
 .sw-knob {
-    position: absolute;
-    top: 3px; left: 3px;
+    position: absolute; top: 3px; left: 3px;
     width: 16px; height: 16px;
-    background: #555;
-    border-radius: 50%;
+    background: #555; border-radius: 50%;
     transition: transform .25s, background .25s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 9px;
-    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; line-height: 1;
+    pointer-events: none;
 }
-
-.sw input:checked ~ .sw-knob {
-    transform: translateX(20px);
-    background: #00c5ff;
-}
+.sw input:checked ~ .sw-knob { transform: translateX(20px); background: #00c5ff; }
 
 /* ═══════════════════════════════════════════════
    PAGE CONTENT
@@ -225,10 +275,10 @@ body {
 .page {
     width: 100%;
     max-width: 440px;
-    padding: 18px 14px 0;
+    padding: 16px 14px 0;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 13px;
     animation: up .4s cubic-bezier(.22,1,.36,1) both;
 }
 
@@ -248,7 +298,6 @@ body {
     transition: background .3s, border-color .3s;
 }
 
-/* Black header bar on every card */
 .card-hd {
     background: #000000;
     border-bottom: 1px solid rgba(0,197,255,.16);
@@ -273,19 +322,15 @@ body {
    STAFF SELECTOR
 ═══════════════════════════════════════════════ */
 .sel-wrap { position: relative; }
-
 .sel-wrap::after {
     content: '';
-    position: absolute;
-    right: 14px;
-    top: 50%;
+    position: absolute; right: 14px; top: 50%;
     transform: translateY(-50%);
     border-left: 5px solid transparent;
     border-right: 5px solid transparent;
     border-top: 6px solid var(--cyan);
     pointer-events: none;
 }
-
 select#staffName {
     width: 100%;
     padding: 13px 42px 13px 14px;
@@ -301,150 +346,91 @@ select#staffName {
     outline: none;
     transition: border-color .2s, box-shadow .2s;
 }
+select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--cyan-dim); }
 
-select#staffName:focus {
-    border-color: var(--cyan);
-    box-shadow: 0 0 0 3px var(--cyan-dim);
+/* ═══════════════════════════════════════════════
+   ENTRY DATE & TIME (prominent, requested format)
+═══════════════════════════════════════════════ */
+.entry-card { background: var(--card); border: 1px solid var(--bdr); border-radius: var(--r); overflow: hidden; }
+.entry-bd {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 15px;
+    background: linear-gradient(180deg, rgba(0,197,255,.05), transparent);
+}
+.entry-ico {
+    width: 38px; height: 38px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    color: var(--cyan);
+    background: var(--cyan-dim);
+    border: 1px solid var(--cyan-bdr);
+    border-radius: 10px;
+}
+.entry-txt { min-width: 0; }
+.entry-lbl {
+    font-size: 9px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--t2); margin-bottom: 3px;
+}
+.entry-val {
+    font-family: var(--mono);
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--cyan);
+    letter-spacing: .01em;
+    line-height: 1.35;
 }
 
 /* ═══════════════════════════════════════════════
    GPS PANEL
 ═══════════════════════════════════════════════ */
-.gps-toprow {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 13px;
-}
-
+.gps-toprow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 13px; }
 .gps-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: .07em;
-    text-transform: uppercase;
-    transition: all .3s;
-    border: 1px solid;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    transition: all .3s; border: 1px solid;
 }
-
 .gps-badge.acquiring { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-bdr); }
 .gps-badge.onsite    { background: var(--green-bg);  color: var(--green);  border-color: var(--green-bdr); }
 .gps-badge.offsite   { background: var(--red-bg);    color: var(--red);    border-color: var(--red-bdr); }
 .gps-badge.gps-error { background: var(--red-bg);    color: var(--red);    border-color: var(--red-bdr); }
-
-.bdot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    flex-shrink: 0;
-}
-
+.bdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 .bdot.pulse { animation: blink 1.1s ease-in-out infinite; }
-
 @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:.2; transform:scale(.65); } }
 
-/* Sync button */
 .sync-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: none;
-    border: 1px solid var(--bdr);
-    color: var(--t2);
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: .04em;
-    padding: 5px 12px;
-    border-radius: 20px;
-    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px;
+    background: none; border: 1px solid var(--bdr); color: var(--t2);
+    font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: .04em;
+    padding: 5px 12px; border-radius: 20px; cursor: pointer;
     transition: border-color .2s, color .2s;
 }
-
 .sync-btn:hover  { border-color: var(--bdr-hi); color: var(--cyan); }
 .sync-btn:disabled { opacity: .4; cursor: not-allowed; }
 .sync-btn.spinning svg { animation: spin .8s linear infinite; }
-
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* GPS data cells */
-.gps-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 13px;
-}
-
-.gps-cell {
-    background: var(--surf2);
-    border: 1px solid var(--bdr);
-    border-radius: 9px;
-    padding: 10px 13px;
-}
-
+.gps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 13px; }
+.gps-cell { background: var(--surf2); border: 1px solid var(--bdr); border-radius: 9px; padding: 10px 13px; }
 .gc-lbl {
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: .13em;
-    text-transform: uppercase;
-    color: var(--t3);
-    margin-bottom: 5px;
-    font-family: var(--sans);
+    font-size: 9.5px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--t3); margin-bottom: 5px; font-family: var(--sans);
 }
-
-.gc-val {
-    font-family: var(--mono);
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--t1);
-}
-
+.gc-val { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--t1); }
 .gc-val.cyan { color: var(--cyan); }
 
-/* Signal stability */
-.stab-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
+.stab-row { display: flex; align-items: center; gap: 8px; }
 .stab-lbl {
-    font-family: var(--sans);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .10em;
-    text-transform: uppercase;
-    color: var(--t2);
-    width: 46px;
-    flex-shrink: 0;
+    font-family: var(--sans); font-size: 10px; font-weight: 700; letter-spacing: .10em; text-transform: uppercase;
+    color: var(--t2); width: 46px; flex-shrink: 0;
 }
-
 .stab-dots { display: flex; gap: 6px; flex: 1; }
-
-.sd {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    background: var(--t3);
-    border: 1px solid transparent;
-    transition: background .3s, transform .2s;
-}
-
+.sd { width: 10px; height: 10px; border-radius: 50%; background: var(--t3); border: 1px solid transparent; transition: background .3s, transform .2s; }
 .sd.ok  { background: var(--green); border-color: var(--green-bdr); transform: scale(1.1); }
 .sd.bad { background: var(--red);   border-color: var(--red-bdr); }
-
-.stab-txt {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--t2);
-    min-width: 54px;
-    text-align: right;
-}
-
+.stab-txt { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--t2); min-width: 54px; text-align: right; }
 .stab-txt.locked  { color: var(--green); }
 .stab-txt.outside { color: var(--red); }
 
@@ -452,212 +438,73 @@ select#staffName:focus {
    OFFLINE BANNER
 ═══════════════════════════════════════════════ */
 .offline-banner {
-    display: none;
-    align-items: center;
-    gap: 10px;
-    background: var(--amber-bg);
-    border: 1px solid var(--amber-bdr);
-    border-radius: 10px;
-    padding: 11px 14px;
-    font-family: var(--sans);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--amber);
-    line-height: 1.4;
+    display: none; align-items: center; gap: 10px;
+    background: var(--amber-bg); border: 1px solid var(--amber-bdr); border-radius: 10px;
+    padding: 11px 14px; font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--amber); line-height: 1.4;
 }
-
 .offline-banner.show { display: flex; }
 
 /* ═══════════════════════════════════════════════
    PUNCH TIMELINE
 ═══════════════════════════════════════════════ */
 .shift-pill {
-    font-family: var(--mono);
-    font-size: 10.5px;
-    font-weight: 500;
-    color: var(--cyan);
-    background: var(--cyan-dim);
-    border: 1px solid var(--cyan-bdr);
-    padding: 3px 10px;
-    border-radius: 20px;
+    font-family: var(--mono); font-size: 10.5px; font-weight: 500; color: var(--cyan);
+    background: var(--cyan-dim); border: 1px solid var(--cyan-bdr); padding: 3px 10px; border-radius: 20px;
 }
-
-.timeline {
-    position: relative;
-    padding-left: 20px;
-    min-height: 40px;
-}
-
-.timeline::before {
-    content: '';
-    position: absolute;
-    left: 7px; top: 10px; bottom: 10px;
-    width: 1px;
-    background: var(--bdr);
-}
-
-.tl-empty {
-    font-family: var(--sans);
-    font-size: 13px;
-    font-style: italic;
-    color: var(--t3);
-    padding: 6px 0;
-}
-
-.tl-row {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 7px 0;
-    position: relative;
-}
-
-.tl-nd {
-    position: absolute;
-    left: -16px;
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    border: 1.5px solid;
-}
-
+.timeline { position: relative; padding-left: 20px; min-height: 40px; }
+.timeline::before { content: ''; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 1px; background: var(--bdr); }
+.tl-empty { font-family: var(--sans); font-size: 13px; font-style: italic; color: var(--t3); padding: 6px 0; }
+.tl-row { display: flex; align-items: center; gap: 11px; padding: 7px 0; position: relative; }
+.tl-nd { position: absolute; left: -16px; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid; }
 .tl-nd.in  { border-color: var(--cyan); background: var(--cyan-dim); }
 .tl-nd.out { border-color: var(--red);  background: var(--red-bg); }
-
 .tl-badge {
-    font-family: var(--sans);
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: .10em;
-    text-transform: uppercase;
-    padding: 2px 9px;
-    border-radius: 4px;
-    min-width: 36px;
-    text-align: center;
-    border: 1px solid;
+    font-family: var(--sans); font-size: 9.5px; font-weight: 700; letter-spacing: .10em; text-transform: uppercase;
+    padding: 2px 9px; border-radius: 4px; min-width: 36px; text-align: center; border: 1px solid;
 }
-
 .tl-badge.in  { background: var(--cyan-dim); color: var(--cyan); border-color: var(--cyan-bdr); }
 .tl-badge.out { background: var(--red-bg);   color: var(--red);  border-color: var(--red-bdr); }
-
-.tl-time {
-    font-family: var(--mono);
-    font-size: 14px;
-    font-weight: 400;
-    color: var(--t1);
-    letter-spacing: .02em;
-}
-
-.tl-pend {
-    font-family: var(--sans);
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--amber);
-    margin-left: 2px;
-}
-
+.tl-time { font-family: var(--mono); font-size: 14px; font-weight: 400; color: var(--t1); letter-spacing: .02em; }
+.tl-pend { font-family: var(--sans); font-size: 10px; font-weight: 700; color: var(--amber); margin-left: 2px; }
 .tl-skel { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
-
-.skel {
-    background: var(--bdr);
-    border-radius: 4px;
-    animation: shim 1.4s ease-in-out infinite;
-}
-
+.skel { background: var(--bdr); border-radius: 4px; animation: shim 1.4s ease-in-out infinite; }
 @keyframes shim { 0%,100% { opacity:.4; } 50% { opacity:.9; } }
 
 /* ═══════════════════════════════════════════════
    PUNCH BUTTONS
 ═══════════════════════════════════════════════ */
 .btn-grp { display: flex; flex-direction: column; gap: 12px; }
-
 .punch-btn {
-    width: 100%;
-    height: 68px;
-    font-family: var(--sans);
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: .10em;
-    text-transform: uppercase;
-    border-radius: 12px;
-    border: 1.5px solid;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    position: relative;
-    overflow: hidden;
+    width: 100%; height: 68px;
+    font-family: var(--sans); font-size: 15px; font-weight: 700; letter-spacing: .10em; text-transform: uppercase;
+    border-radius: 12px; border: 1.5px solid; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    position: relative; overflow: hidden;
     transition: transform .12s, box-shadow .2s, opacity .3s;
 }
-
-.punch-btn::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255,255,255,0);
-    transition: background .15s;
-}
-
+.punch-btn::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0); transition: background .15s; }
 .punch-btn:hover:not(:disabled)::after { background: rgba(255,255,255,.06); }
 .punch-btn:active:not(:disabled) { transform: scale(0.974); }
 .punch-btn:disabled { cursor: not-allowed; opacity: .20; box-shadow: none !important; }
-
-.btn-in {
-    background: var(--green-bg);
-    color: var(--green);
-    border-color: var(--green-bdr);
-}
-
-.btn-in.active {
-    background: var(--green);
-    color: #000;
-    border-color: var(--green);
-    box-shadow: 0 6px 26px rgba(0,230,118,.30);
-}
-
-.btn-out {
-    background: var(--red-bg);
-    color: var(--red);
-    border-color: var(--red-bdr);
-}
-
-.btn-out.active {
-    background: var(--red);
-    color: #fff;
-    border-color: var(--red);
-    box-shadow: 0 6px 26px rgba(255,82,82,.28);
-}
-
+.btn-in { background: var(--green-bg); color: var(--green); border-color: var(--green-bdr); }
+.btn-in.active { background: var(--green); color: #000; border-color: var(--green); box-shadow: 0 6px 26px rgba(0,230,118,.30); }
+.btn-out { background: var(--red-bg); color: var(--red); border-color: var(--red-bdr); }
+.btn-out.active { background: var(--red); color: #fff; border-color: var(--red); box-shadow: 0 6px 26px rgba(255,82,82,.28); }
 .btn-ico { font-size: 20px; line-height: 1; }
 .btn-aux { font-size: 14px; opacity: .65; }
-
 .gps-hint {
-    text-align: center;
-    font-family: var(--sans);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--t3);
-    margin-top: 8px;
-    letter-spacing: .02em;
-    display: none;
+    text-align: center; font-family: var(--sans); font-size: 12px; font-weight: 500;
+    color: var(--t3); margin-top: 8px; letter-spacing: .02em; display: none;
 }
 
 /* ═══════════════════════════════════════════════
    STATUS
 ═══════════════════════════════════════════════ */
 #statusMsg {
-    border-radius: 10px;
-    padding: 12px 15px;
-    font-family: var(--sans);
-    font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    line-height: 1.5;
-    margin-top: 12px;
-    display: none;
-    border: 1px solid;
+    border-radius: 10px; padding: 12px 15px;
+    font-family: var(--sans); font-size: 14px; font-weight: 500; text-align: center; line-height: 1.5;
+    margin-top: 12px; display: none; border: 1px solid;
 }
-
 #statusMsg.success { background: var(--green-bg); color: var(--green); border-color: var(--green-bdr); }
 #statusMsg.error   { background: var(--red-bg);   color: var(--red);   border-color: var(--red-bdr); }
 #statusMsg.warning { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-bdr); }
@@ -666,27 +513,108 @@ select#staffName:focus {
    FOOTER CLOCK — black bg, cyan text
 ═══════════════════════════════════════════════ */
 .clock-bar {
-    background: #000000;
-    border-top: 1px solid rgba(0,197,255,.16);
-    padding: 10px 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    background: #000000; border-top: 1px solid rgba(0,197,255,.16);
+    padding: 11px 15px; display: flex; justify-content: center; align-items: center;
+}
+.clock-full {
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+    color: rgba(0,197,255,.85); letter-spacing: .03em; text-align: center;
 }
 
-.clock-date {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: rgba(0,197,255,.50);
-    letter-spacing: .04em;
+/* ═══════════════════════════════════════════════
+   INSTALL BANNER
+═══════════════════════════════════════════════ */
+.ibanner {
+    display: none; position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom));
+    max-width: 440px; margin: 0 auto; z-index: 60;
+    background: var(--card); border: 1px solid var(--bdr-hi); border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    padding: 13px 14px; align-items: center; gap: 12px;
+    animation: up .35s cubic-bezier(.22,1,.36,1) both;
 }
+.ibanner.show { display: flex; }
+.ib-ico { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: var(--cyan); background: var(--cyan-dim); border: 1px solid var(--cyan-bdr); border-radius: 10px; }
+.ib-txt { flex: 1; min-width: 0; }
+.ib-t1 { font-size: 13.5px; font-weight: 700; color: var(--t1); }
+.ib-t2 { font-size: 11.5px; color: var(--t2); margin-top: 1px; }
+.ib-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.ib-btn { font-family: var(--sans); font-size: 12px; font-weight: 700; padding: 7px 13px; border-radius: 8px; cursor: pointer; border: 1px solid; }
+.ib-btn.primary { background: var(--cyan); color: #000; border-color: var(--cyan); }
+.ib-btn.ghost { background: none; color: var(--t2); border-color: var(--bdr); }
 
-.clock-time {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(0,197,255,.85);
-    letter-spacing: .04em;
+/* ═══════════════════════════════════════════════
+   SETTINGS / MENU SHEET
+═══════════════════════════════════════════════ */
+.sheet-back {
+    display: none; position: fixed; inset: 0; z-index: 70;
+    background: rgba(0,0,0,.55); backdrop-filter: blur(2px);
+    align-items: flex-end; justify-content: center;
+}
+.sheet-back.show { display: flex; animation: fade .2s both; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.sheet {
+    width: 100%; max-width: 440px;
+    background: var(--card); border: 1px solid var(--bdr); border-bottom: none;
+    border-radius: 18px 18px 0 0;
+    padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
+    animation: sheetUp .28s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet-grab { width: 40px; height: 4px; border-radius: 4px; background: var(--bdr); margin: 4px auto 12px; }
+.sheet-hd {
+    font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--cyan); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: baseline;
+}
+.sheet-hd .sv { font-family: var(--mono); font-size: 11px; color: var(--t2); letter-spacing: .02em; text-transform: none; }
+.sheet-item {
+    width: 100%; display: flex; align-items: center; gap: 12px;
+    background: var(--surf); border: 1px solid var(--bdr); border-radius: 11px;
+    padding: 13px 14px; margin-bottom: 9px; cursor: pointer;
+    font-family: var(--sans); font-size: 14.5px; font-weight: 500; color: var(--t1); text-align: left;
+    transition: border-color .2s, background .2s;
+}
+.sheet-item:hover { border-color: var(--bdr-hi); }
+.sheet-item .si-ico { font-size: 17px; width: 22px; text-align: center; color: var(--cyan); }
+.sheet-item.row { cursor: default; justify-content: space-between; }
+.sheet-note {
+    font-family: var(--sans); font-size: 11.5px; color: var(--t2); line-height: 1.55;
+    padding: 4px 4px 0; border-top: 1px dashed var(--bdr); margin-top: 4px; padding-top: 12px;
+}
+.sheet-note b { color: var(--cyan); font-weight: 700; }
+
+/* ═══════════════════════════════════════════════
+   iOS INSTALL INSTRUCTIONS
+═══════════════════════════════════════════════ */
+.ios-back { display: none; position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.7); align-items: center; justify-content: center; padding: 20px; }
+.ios-back.show { display: flex; }
+.ios-box { background: var(--card); border: 1px solid var(--bdr-hi); border-radius: 16px; padding: 22px; max-width: 340px; text-align: center; }
+.ios-box h3 { font-size: 16px; color: var(--cyan); margin-bottom: 14px; }
+.ios-step { display: flex; align-items: center; gap: 11px; text-align: left; font-size: 13px; color: var(--t1); margin-bottom: 11px; line-height: 1.4; }
+.ios-num { width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; background: var(--cyan-dim); border: 1px solid var(--cyan-bdr); color: var(--cyan); font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+.ios-close { margin-top: 8px; width: 100%; background: var(--cyan); color: #000; border: none; padding: 11px; border-radius: 10px; font-family: var(--sans); font-weight: 700; font-size: 14px; cursor: pointer; }
+
+/* ═══════════════════════════════════════════════
+   MOBILE: EDGE-TO-EDGE, no page padding
+═══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    body { padding-bottom: 0; }
+    .page {
+        max-width: 100%;
+        padding: 9px 0 0;
+        gap: 9px;
+    }
+    .card, .entry-card {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+    .card-bd { padding: 15px 13px; }
+    .entry-bd { padding: 13px; }
+    .entry-val { font-size: 13px; }
+    .ibanner { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); }
+    .hdr-title { font-size: 18px; }
+    .logo-img { height: 54px; }
 }
     </style>
 </head>
@@ -695,27 +623,27 @@ select#staffName:focus {
 <!-- ═══════════════  HEADER  ═══════════════ -->
 <header class="app-header">
 
-    <!-- Toggle pinned top-right -->
-    <div class="toggle-wrap">
-        <span class="toggle-lbl" id="tLbl">Light</span>
+    <!-- Version badge — top-left -->
+    <span class="ver-badge" id="verBadge">v2.0</span>
+
+    <!-- Actions — top-right: Install · Theme toggle · Menu -->
+    <div class="hdr-actions">
+        <button class="install-btn" id="installBtn" onclick="triggerInstall()" title="Install app">⤓ Install</button>
         <label class="sw" title="Toggle light / dark mode">
             <input type="checkbox" id="themeChk" onchange="doTheme(this)">
             <div class="sw-track"></div>
             <div class="sw-knob">☀</div>
         </label>
+        <button class="menu-btn" id="menuBtn" onclick="openSheet()" title="Menu" aria-label="Menu">⋮</button>
     </div>
 
     <!-- Logo + title stacked centrally -->
     <div class="logo-block">
-
-        <!-- Primary: logo.png from GitHub repo -->
         <img class="logo-img" src="logo.png" alt="India Business International"
              onerror="this.style.display='none'; document.getElementById('logoSvg').style.display='block';">
 
-        <!-- SVG fallback (IBI dot-grid) shown only when logo.png is missing -->
-        <svg id="logoSvg" class="logo-svg" width="130" height="52" viewBox="0 0 130 52" fill="none"
+        <svg id="logoSvg" class="logo-svg" width="140" height="56" viewBox="0 0 130 52" fill="none"
              xmlns="http://www.w3.org/2000/svg" aria-label="India Business International logo">
-            <!-- dot grid — col 1 small, col 2 medium, col 3 large -->
             <circle cx="6"  cy="6"  r="2.4" fill="#00c5ff" opacity=".40"/>
             <circle cx="6"  cy="16" r="2.4" fill="#00c5ff" opacity=".52"/>
             <circle cx="6"  cy="26" r="2.4" fill="#00c5ff" opacity=".52"/>
@@ -731,15 +659,12 @@ select#staffName:focus {
             <circle cx="30" cy="26" r="4.6" fill="#00c5ff"/>
             <circle cx="30" cy="36" r="4.6" fill="#00c5ff"/>
             <circle cx="30" cy="46" r="4.6" fill="#00c5ff" opacity=".65"/>
-            <!-- vertical rule -->
             <rect x="44" y="4" width="1.5" height="44" fill="#00c5ff" opacity=".35" rx="1"/>
-            <!-- text: INDIA BUSINESS INTERNATIONAL -->
-            <text x="54" y="18"  font-family="Roboto,Arial,sans-serif" font-size="13" font-weight="900" fill="#00c5ff" letter-spacing="1">INDIA</text>
-            <text x="54" y="33"  font-family="Roboto,Arial,sans-serif" font-size="13" font-weight="900" fill="#00c5ff" letter-spacing="1">BUSINESS</text>
-            <text x="54" y="48"  font-family="Roboto,Arial,sans-serif" font-size="9.5" font-weight="900" fill="#00c5ff" letter-spacing="1">INTERNATIONAL</text>
+            <text x="54" y="18" font-family="Roboto,Arial,sans-serif" font-size="13"   font-weight="900" fill="#00c5ff" letter-spacing="1">INDIA</text>
+            <text x="54" y="33" font-family="Roboto,Arial,sans-serif" font-size="13"   font-weight="900" fill="#00c5ff" letter-spacing="1">BUSINESS</text>
+            <text x="54" y="48" font-family="Roboto,Arial,sans-serif" font-size="9.5" font-weight="900" fill="#00c5ff" letter-spacing="1">INTERNATIONAL</text>
         </svg>
 
-        <!-- Thin cyan rule separator -->
         <hr class="logo-rule">
 
         <div class="hdr-text">
@@ -747,7 +672,6 @@ select#staffName:focus {
             <span class="hdr-sub">Warehouse · Kanyakumari</span>
         </div>
     </div>
-
 </header>
 
 
@@ -764,6 +688,17 @@ select#staffName:focus {
                     <option value="S. Aswin">S. Aswin · Packaging Manager</option>
                     <option value="M. Ajay">M. Ajay · Catalogue Manager</option>
                 </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- ENTRY DATE & TIME -->
+    <div class="entry-card">
+        <div class="entry-bd">
+            <div class="entry-ico">🕑</div>
+            <div class="entry-txt">
+                <div class="entry-lbl">Entry Date &amp; Time</div>
+                <div class="entry-val" id="entryVal">—</div>
             </div>
         </div>
     </div>
@@ -848,12 +783,67 @@ select#staffName:focus {
             <div id="statusMsg"></div>
         </div>
         <div class="clock-bar">
-            <span class="clock-date" id="clkDate">—</span>
-            <span class="clock-time" id="clkTime">—</span>
+            <span class="clock-full" id="clkFull">—</span>
         </div>
     </div>
 
 </div><!-- /page -->
+
+
+<!-- ═══════════════  INSTALL BANNER  ═══════════════ -->
+<div class="ibanner" id="ibanner">
+    <div class="ib-ico">⤓</div>
+    <div class="ib-txt">
+        <div class="ib-t1">Install IBI Attendance</div>
+        <div class="ib-t2">Add to your home screen for one-tap punching.</div>
+    </div>
+    <div class="ib-actions">
+        <button class="ib-btn primary" onclick="triggerInstall()">Install</button>
+        <button class="ib-btn ghost" onclick="dismissBanner()">Not now</button>
+    </div>
+</div>
+
+
+<!-- ═══════════════  SETTINGS / MENU SHEET  ═══════════════ -->
+<div class="sheet-back" id="sheetBack" onclick="sheetBackTap(event)">
+    <div class="sheet" role="dialog" aria-label="Menu">
+        <div class="sheet-grab"></div>
+        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.0</span></div>
+
+        <button class="sheet-item" id="menuInstall" onclick="triggerInstall(); closeSheet()" style="display:none">
+            <span class="si-ico">⤓</span> Install as App (PWA)
+        </button>
+
+        <button class="sheet-item" onclick="doSync(); closeSheet()">
+            <span class="si-ico">🔄</span> Sync my status now
+        </button>
+
+        <div class="sheet-item row">
+            <span><span class="si-ico">🎨</span> Dark / Light theme</span>
+            <label class="sw" title="Toggle light / dark mode">
+                <input type="checkbox" id="themeChk2" onchange="doThemeFromSheet(this)">
+                <div class="sw-track"></div>
+                <div class="sw-knob" id="knob2">☀</div>
+            </label>
+        </div>
+
+        <div class="sheet-note">
+            Punches are verified <b>on-site by GPS</b> and confirmed on the server — you must be inside the
+            warehouse geofence to punch. Pay is calculated automatically at <b>₹100/hour</b> and flows to the
+            <b>IBI ERP System</b>.
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════════  iOS INSTALL INSTRUCTIONS  ═══════════════ -->
+<div class="ios-back" id="iosBack" onclick="if(event.target===this)closeIos()">
+    <div class="ios-box">
+        <h3 id="iosTitle">Install this app</h3>
+        <div id="iosSteps"></div>
+        <button class="ios-close" onclick="closeIos()">Got it</button>
+    </div>
+</div>
 
 
 <script>
@@ -878,9 +868,9 @@ const ST = {
     buf: [], steady: false,
     lat: null, lon: null, acc: null,
     syncing: false, busy: false,
-    gpsMode: 'high',       // 'high' or 'network'
-    watchId: null,         // geolocation watch handle
-    fallbackDone: false,   // true once network fallback attempted
+    gpsMode: 'high',
+    watchId: null,
+    fallbackDone: false,
 };
 
 // ╔══════════════════════════════════════════╗
@@ -896,14 +886,14 @@ function fmtTime(d) {
     return String(h).padStart(2,'0') + ':' + m + ':' + s + ' ' + p;
 }
 
-// "Thursday, 16 Apr 2026"
-function fmtDate(d) {
+// "28 May 2026, Thursday, 01:38:00 PM"  (requested entry format)
+function fmtEntry(d) {
     if (!(d instanceof Date)) d = new Date();
     const dy = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return dy[d.getDay()] + ', ' +
-           String(d.getDate()).padStart(2,'0') + ' ' +
-           mo[d.getMonth()] + ' ' + d.getFullYear();
+    const mo = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+    return d.getDate() + ' ' + mo[d.getMonth()] + ' ' + d.getFullYear() +
+           ', ' + dy[d.getDay()] + ', ' + fmtTime(d);
 }
 
 // ╔══════════════════════════════════════════╗
@@ -911,38 +901,42 @@ function fmtDate(d) {
 // ╚══════════════════════════════════════════╝
 (function () {
     const t = localStorage.getItem('ibi_theme') || 'dark';
-    if (t === 'light') {
-        document.documentElement.setAttribute('data-theme', 'light');
-        const chk = document.getElementById('themeChk');
-        chk.checked = true;
-        document.getElementById('tLbl').textContent = 'Dark';
-        document.querySelector('.sw-knob').textContent = '🌙';
-    }
+    if (t === 'light') applyTheme(true);
 })();
 
-function doTheme(el) {
-    const lbl   = document.getElementById('tLbl');
-    const knob  = document.querySelector('.sw-knob');
-    if (el.checked) {
+function applyTheme(isLight) {
+    const chk   = document.getElementById('themeChk');
+    const chk2  = document.getElementById('themeChk2');
+    const knob  = document.querySelector('.hdr-actions .sw-knob');
+    const knob2 = document.getElementById('knob2');
+    if (isLight) {
         document.documentElement.setAttribute('data-theme', 'light');
         localStorage.setItem('ibi_theme', 'light');
-        lbl.textContent  = 'Dark';
-        knob.textContent = '🌙';
+        if (chk)  chk.checked  = true;
+        if (chk2) chk2.checked = true;
+        if (knob)  knob.textContent  = '🌙';
+        if (knob2) knob2.textContent = '🌙';
     } else {
         document.documentElement.removeAttribute('data-theme');
         localStorage.setItem('ibi_theme', 'dark');
-        lbl.textContent  = 'Light';
-        knob.textContent = '☀';
+        if (chk)  chk.checked  = false;
+        if (chk2) chk2.checked = false;
+        if (knob)  knob.textContent  = '☀';
+        if (knob2) knob2.textContent = '☀';
     }
 }
+function doTheme(el)          { applyTheme(el.checked); }
+function doThemeFromSheet(el) { applyTheme(el.checked); }
 
 // ╔══════════════════════════════════════════╗
-//  LIVE CLOCK
+//  LIVE CLOCK / ENTRY DATE-TIME
 // ╚══════════════════════════════════════════╝
 function tick() {
-    const n = new Date();
-    document.getElementById('clkDate').textContent = fmtDate(n);
-    document.getElementById('clkTime').textContent = fmtTime(n);
+    const s = fmtEntry(new Date());
+    const c = document.getElementById('clkFull');
+    const e = document.getElementById('entryVal');
+    if (c) c.textContent = s;
+    if (e) e.textContent = s;
 }
 tick();
 setInterval(tick, 1000);
@@ -959,86 +953,47 @@ function hav(la1, lo1, la2, lo2) {
 }
 
 // ╔══════════════════════════════════════════╗
-//  GPS  —  Two-attempt fallback system
-//  Attempt 1: High-accuracy GPS (best precision)
-//  Attempt 2: Network/Cell-tower location (works on
-//             all phones including Vivo/Xiaomi/Realme
-//             which have aggressive battery management
-//             that blocks GPS for browser apps)
+//  GPS — Two-attempt fallback system
 // ╚══════════════════════════════════════════╝
 function startGPS() {
-    if (!navigator.geolocation) {
-        gBadge('gps-error', 'GPS Not Supported');
-        return;
-    }
-    ST.gpsMode      = 'high';   // track which mode is active
-    ST.watchId      = null;
-    ST.fallbackDone = false;
+    if (!navigator.geolocation) { gBadge('gps-error', 'GPS Not Supported'); return; }
+    ST.gpsMode = 'high'; ST.watchId = null; ST.fallbackDone = false;
     launchHighAccuracy();
 }
 
-// ── Attempt 1: High-accuracy GPS ──────────────
 function launchHighAccuracy() {
     ST.gpsMode = 'high';
     gBadge('acquiring', 'Acquiring GPS...');
-
-    // Safety: clear any existing watch before starting a new one
-    if (ST.watchId !== null) {
-        navigator.geolocation.clearWatch(ST.watchId);
-    }
-
+    if (ST.watchId !== null) navigator.geolocation.clearWatch(ST.watchId);
     ST.watchId = navigator.geolocation.watchPosition(
         gOk,
         function(err) {
-            // Code 3 = TIMEOUT — try network fallback
-            if (err.code === 3 && !ST.fallbackDone) {
-                launchNetworkFallback();
-            } else if (err.code === 1) {
-                // Permission denied — nothing we can do
+            if (err.code === 3 && !ST.fallbackDone) { launchNetworkFallback(); }
+            else if (err.code === 1) {
                 gBadge('gps-error', 'Location Permission Denied');
                 showMsg('Please allow Location access in your phone settings.', 'error');
-            } else {
-                // Code 2 = Position unavailable — try fallback anyway
-                if (!ST.fallbackDone) launchNetworkFallback();
-            }
+            } else { if (!ST.fallbackDone) launchNetworkFallback(); }
         },
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 6000 }
     );
 }
 
-// ── Attempt 2: Network/Cell-tower fallback ─────
-// Works immediately on ALL Android phones because it
-// uses Wi-Fi + mobile towers, not the GPS chip.
-// Accuracy will be ±50–200m which is still sufficient
-// to detect "inside warehouse vs outside".
 function launchNetworkFallback() {
-    ST.fallbackDone = true;
-    ST.gpsMode      = 'network';
-
-    // Clear the high-accuracy watch
-    if (ST.watchId !== null) {
-        navigator.geolocation.clearWatch(ST.watchId);
-        ST.watchId = null;
-    }
-
+    ST.fallbackDone = true; ST.gpsMode = 'network';
+    if (ST.watchId !== null) { navigator.geolocation.clearWatch(ST.watchId); ST.watchId = null; }
     gBadge('acquiring', 'Switching to Network GPS...');
     showMsg('GPS chip timed out — switching to network location. This works fine for geofencing.', 'warning');
-
     ST.watchId = navigator.geolocation.watchPosition(
         gOk,
         function(err) {
-            const msgs = {
-                1: 'Location Permission Denied. Enable in phone Settings.',
-                2: 'Location signal unavailable. Check Location is ON.',
-                3: 'Location Timeout. Check Location settings.'
-            };
+            const msgs = { 1:'Location Permission Denied. Enable in phone Settings.',
+                           2:'Location signal unavailable. Check Location is ON.',
+                           3:'Location Timeout. Check Location settings.' };
             gBadge('gps-error', 'Location Error');
             showMsg(msgs[err.code] || 'Location error. Please check phone settings.', 'error');
             document.getElementById('distVal').textContent = '—';
             document.getElementById('accVal').textContent  = '—';
         },
-        // No enableHighAccuracy — forces network/cell-tower mode
-        // Long timeout + cached reading allowed for reliability
         { enableHighAccuracy: false, timeout: 30000, maximumAge: 10000 }
     );
 }
@@ -1049,7 +1004,7 @@ function gOk(pos) {
     const di = hav(la, lo, CFG.WAREHOUSE_LAT, CFG.WAREHOUSE_LON);
     const ok = di <= CFG.MAX_DIST_M;
 
-    ST.lat = la;  ST.lon = lo;  ST.acc = ac;
+    ST.lat = la; ST.lon = lo; ST.acc = ac;
     ST.buf.push(ok);
     if (ST.buf.length > CFG.BUF_SIZE) ST.buf.shift();
 
@@ -1057,9 +1012,7 @@ function gOk(pos) {
     const allO = ST.buf.length >= CFG.BUF_SIZE && n === 0;
     ST.steady  = n >= CFG.STAB_NEED;
 
-    // Show network mode badge subtly if using fallback
     const modeTag = (ST.gpsMode === 'network') ? ' (Network)' : '';
-
     document.getElementById('distVal').textContent = di + ' m';
     document.getElementById('accVal').textContent  = '± ' + ac + ' m';
     drawDots(n);
@@ -1099,9 +1052,9 @@ function drawDots(n) {
 // ╚══════════════════════════════════════════╝
 function onProfile() {
     const n = document.getElementById('staffName').value;
-    ST.staff = n;  ST.punchState = null;  ST.punches = [];
+    ST.staff = n; ST.punchState = null; ST.punches = [];
     localStorage.setItem('ibi_last_profile', n);
-    skeleton();  refreshBtns();  doSync();
+    skeleton(); refreshBtns(); doSync();
 }
 
 // ╔══════════════════════════════════════════╗
@@ -1111,8 +1064,7 @@ function doSync() {
     if (!ST.staff || ST.syncing) return;
     ST.syncing = true;
     const btn = document.getElementById('syncBtn');
-    btn.disabled = true;
-    btn.classList.add('spinning');
+    btn.disabled = true; btn.classList.add('spinning');
 
     fetch(CFG.GAS_URL+'?action=getState&staffName='+encodeURIComponent(ST.staff)+'&token='+CFG.TOKEN)
         .then(r => r.json())
@@ -1126,9 +1078,8 @@ function doSync() {
         .catch(fallbackSt)
         .finally(() => {
             ST.syncing = false;
-            btn.disabled = false;
-            btn.classList.remove('spinning');
-            drawTimeline();  refreshBtns();
+            btn.disabled = false; btn.classList.remove('spinning');
+            drawTimeline(); refreshBtns();
         });
 }
 
@@ -1147,8 +1098,7 @@ function refreshBtns() {
     const oA = document.getElementById('outAux');
     const gh = document.getElementById('gpsHint');
 
-    iB.classList.remove('active');
-    oB.classList.remove('active');
+    iB.classList.remove('active'); oB.classList.remove('active');
 
     if (!ST.staff) {
         iB.disabled = oB.disabled = true;
@@ -1193,42 +1143,20 @@ function drawTimeline() {
     const pill = document.getElementById('shiftPill');
     tl.innerHTML = '';
 
-    if (!ST.staff) {
-        empty(tl, 'Select a profile to view activity');
-        pill.textContent = '—';
-        return;
-    }
-    if (!ST.punches||!ST.punches.length) {
-        empty(tl, 'No punches recorded yet today');
-        pill.textContent = '0 / 10';
-        return;
-    }
+    if (!ST.staff) { empty(tl, 'Select a profile to view activity'); pill.textContent = '—'; return; }
+    if (!ST.punches||!ST.punches.length) { empty(tl, 'No punches recorded yet today'); pill.textContent = '0 / 10'; return; }
 
     pill.textContent = ST.punches.length+' / 10';
     ST.punches.forEach(p => {
         const isIn = p.type==='IN';
         const row  = document.createElement('div');
         row.className = 'tl-row';
-
-        const nd = document.createElement('div');
-        nd.className = 'tl-nd '+(isIn?'in':'out');
-
-        const bg = document.createElement('span');
-        bg.className = 'tl-badge '+(isIn?'in':'out');
-        bg.textContent = p.type;
-
-        const tm = document.createElement('span');
-        tm.className   = 'tl-time';
-        tm.textContent = p.time;   // always "08:51:00 AM" format
-
-        row.appendChild(nd);
-        row.appendChild(bg);
-        row.appendChild(tm);
-
+        const nd = document.createElement('div'); nd.className = 'tl-nd '+(isIn?'in':'out');
+        const bg = document.createElement('span'); bg.className = 'tl-badge '+(isIn?'in':'out'); bg.textContent = p.type;
+        const tm = document.createElement('span'); tm.className = 'tl-time'; tm.textContent = p.time;
+        row.appendChild(nd); row.appendChild(bg); row.appendChild(tm);
         if (p.pending) {
-            const pd = document.createElement('span');
-            pd.className = 'tl-pend';
-            pd.textContent = '⚠ pending';
+            const pd = document.createElement('span'); pd.className = 'tl-pend'; pd.textContent = '⚠ pending';
             row.appendChild(pd);
         }
         tl.appendChild(row);
@@ -1237,8 +1165,7 @@ function drawTimeline() {
 
 function empty(tl, msg) {
     const e = document.createElement('div');
-    e.className = 'tl-empty';
-    e.textContent = msg;
+    e.className = 'tl-empty'; e.textContent = msg;
     tl.appendChild(e);
 }
 
@@ -1250,54 +1177,44 @@ function doPunch(action) {
     if (!ST.staff)  { showMsg('Please select your profile first.', 'error');  return; }
     if (!ST.steady) { showMsg('Outside warehouse zone. Wait for GPS lock.',   'error'); return; }
 
-    ST.busy = true;
-    refreshBtns();
+    ST.busy = true; refreshBtns();
     showMsg('Verifying location...', 'warning');
 
-    // Use the same mode (high or network) that successfully got a stable reading
     const opts = (ST.gpsMode === 'network')
         ? { enableHighAccuracy: false, timeout: 20000, maximumAge: 10000 }
         : { enableHighAccuracy: true,  timeout: 20000, maximumAge: 5000  };
 
     navigator.geolocation.getCurrentPosition(
         pos => {
-            const di = hav(pos.coords.latitude, pos.coords.longitude,
-                           CFG.WAREHOUSE_LAT, CFG.WAREHOUSE_LON);
+            const di = hav(pos.coords.latitude, pos.coords.longitude, CFG.WAREHOUSE_LAT, CFG.WAREHOUSE_LON);
             if (di > CFG.MAX_DIST_M) {
                 showMsg('Re-check failed: ' + di + 'm away. Must be within ' + CFG.MAX_DIST_M + 'm.', 'error');
-                ST.buf = [];  ST.steady = false;
-                ST.busy = false;  refreshBtns();
+                ST.buf = []; ST.steady = false; ST.busy = false; refreshBtns();
                 return;
             }
             showMsg('Location confirmed — recording punch...', 'warning');
             sendPunch(action, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
         },
         err => {
-            // If high-accuracy final check times out, retry once with network mode
             if (err.code === 3 && ST.gpsMode === 'high') {
                 showMsg('GPS chip slow — retrying with network location...', 'warning');
                 navigator.geolocation.getCurrentPosition(
                     pos => {
-                        const di = hav(pos.coords.latitude, pos.coords.longitude,
-                                       CFG.WAREHOUSE_LAT, CFG.WAREHOUSE_LON);
+                        const di = hav(pos.coords.latitude, pos.coords.longitude, CFG.WAREHOUSE_LAT, CFG.WAREHOUSE_LON);
                         if (di > CFG.MAX_DIST_M) {
                             showMsg('Re-check failed: ' + di + 'm away. Must be within ' + CFG.MAX_DIST_M + 'm.', 'error');
-                            ST.buf = [];  ST.steady = false;
-                            ST.busy = false;  refreshBtns();
+                            ST.buf = []; ST.steady = false; ST.busy = false; refreshBtns();
                             return;
                         }
                         showMsg('Location confirmed (network) — recording punch...', 'warning');
                         sendPunch(action, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
                     },
-                    () => {
-                        showMsg('Location check failed. Check phone location settings.', 'error');
-                        ST.busy = false;  refreshBtns();
-                    },
+                    () => { showMsg('Location check failed. Check phone location settings.', 'error'); ST.busy = false; refreshBtns(); },
                     { enableHighAccuracy: false, timeout: 20000, maximumAge: 10000 }
                 );
             } else {
                 showMsg('Location check failed. Check phone location settings.', 'error');
-                ST.busy = false;  refreshBtns();
+                ST.busy = false; refreshBtns();
             }
         },
         opts
@@ -1317,19 +1234,19 @@ function sendPunch(action, la, lo, ac) {
         .then(r => r.json())
         .then(d => {
             if (d.status === 'success') {
-                const t = fmtTime(new Date());   // "08:51:00 AM"
+                const t = fmtTime(new Date());
                 ST.punchState = action;
-                ST.punches.push({ type:action, time:t });
                 localStorage.setItem('ibi_state_'+ST.staff, action);
                 localStorage.removeItem('ibi_pending');
-                hideBanner();  drawTimeline();  speak();
+                hideBanner(); speak();
                 showMsg('✓ '+action+' recorded at '+t, 'success');
+                doSync();   // reconcile timeline strictly from the server (source of truth)
             } else {
                 showMsg(d.message||'Server error. Please try again.', 'error');
             }
         })
         .catch(() => savePending(action, la, lo, ac))
-        .finally(() => { ST.busy = false;  refreshBtns(); });
+        .finally(() => { ST.busy = false; refreshBtns(); });
 }
 
 // ╔══════════════════════════════════════════╗
@@ -1337,8 +1254,8 @@ function sendPunch(action, la, lo, ac) {
 // ╚══════════════════════════════════════════╝
 function savePending(action, la, lo, ac) {
     const t = fmtTime(new Date());
-    const p = { staffName:ST.staff, action, lat:la.toFixed(6),
-                lon:lo.toFixed(6), accuracy:Math.round(ac), timestamp:t, retries:0 };
+    const p = { staffName:ST.staff, action, lat:la.toFixed(6), lon:lo.toFixed(6),
+                accuracy:Math.round(ac), timestamp:t, retries:0 };
     localStorage.setItem('ibi_pending', JSON.stringify(p));
     ST.punchState = action;
     ST.punches.push({ type:action, time:t, pending:true });
@@ -1362,11 +1279,11 @@ function retryPending() {
         .then(r => r.json())
         .then(d => {
             if (d.status==='success') {
-                localStorage.removeItem('ibi_pending');  hideBanner();
-                showMsg('Pending punch synced to server.','success');  doSync();
-            } else { p.retries++;  localStorage.setItem('ibi_pending',JSON.stringify(p)); }
+                localStorage.removeItem('ibi_pending'); hideBanner();
+                showMsg('Pending punch synced to server.','success'); doSync();
+            } else { p.retries++; localStorage.setItem('ibi_pending',JSON.stringify(p)); }
         })
-        .catch(() => { p.retries++;  localStorage.setItem('ibi_pending',JSON.stringify(p)); });
+        .catch(() => { p.retries++; localStorage.setItem('ibi_pending',JSON.stringify(p)); });
 }
 
 function showBanner(t) { document.getElementById('offTxt').textContent=t; document.getElementById('offBanner').classList.add('show'); }
@@ -1378,7 +1295,7 @@ function hideBanner()  { document.getElementById('offBanner').classList.remove('
 let _t;
 function showMsg(msg, type) {
     const el = document.getElementById('statusMsg');
-    el.textContent = msg;  el.className = type;  el.style.display = 'block';
+    el.textContent = msg; el.className = type; el.style.display = 'block';
     clearTimeout(_t);
     if (type==='success') _t = setTimeout(()=>el.style.display='none', 9000);
 }
@@ -1386,9 +1303,82 @@ function showMsg(msg, type) {
 function speak() {
     if ('speechSynthesis' in window) {
         const u = new SpeechSynthesisUtterance('Thank you, from India Business International');
-        u.rate = 0.9;  window.speechSynthesis.speak(u);
+        u.rate = 0.9; window.speechSynthesis.speak(u);
     }
 }
+
+// ╔══════════════════════════════════════════╗
+//  SETTINGS SHEET
+// ╚══════════════════════════════════════════╝
+function openSheet()  { document.getElementById('sheetBack').classList.add('show'); }
+function closeSheet() { document.getElementById('sheetBack').classList.remove('show'); }
+function sheetBackTap(e) { if (e.target === document.getElementById('sheetBack')) closeSheet(); }
+
+// ╔══════════════════════════════════════════╗
+//  PWA — INSTALL / SERVICE WORKER
+// ╚══════════════════════════════════════════╝
+let deferredPrompt = null;
+const DISMISS_KEY  = 'IBI_ATTENDANCE_INSTALL_DISMISSED';
+const DISMISS_DAYS = 1;   // re-prompt after just 1 day (well under 7)
+
+function isStandalone() { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
+function isIOS()        { return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream; }
+function bannerDismissedRecently() {
+    const ts = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
+    return ts && (Date.now() - ts) < DISMISS_DAYS * 86400000;
+}
+function showInstallUI() {
+    document.getElementById('installBtn').classList.add('show');
+    document.getElementById('menuInstall').style.display = 'flex';
+}
+function hideInstallUI() {
+    document.getElementById('installBtn').classList.remove('show');
+    document.getElementById('menuInstall').style.display = 'none';
+}
+function maybeShowBanner() {
+    if (isStandalone() || bannerDismissedRecently()) return;
+    setTimeout(() => { if (!isStandalone()) document.getElementById('ibanner').classList.add('show'); }, 1500);
+}
+function dismissBanner() {
+    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    document.getElementById('ibanner').classList.remove('show');
+}
+function triggerInstall() {
+    document.getElementById('ibanner').classList.remove('show');
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => { deferredPrompt = null; hideInstallUI(); });
+    } else if (isStandalone()) {
+        showMsg('App is already installed.', 'success');
+    } else {
+        showIosInstructions();
+    }
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); deferredPrompt = e;
+    showInstallUI(); maybeShowBanner();
+});
+window.addEventListener('appinstalled', () => {
+    deferredPrompt = null; hideInstallUI();
+    document.getElementById('ibanner').classList.remove('show');
+    showMsg('App installed ✓', 'success');
+});
+
+function showIosInstructions() {
+    const steps = isIOS()
+        ? [['Tap the Share button', '⬆️'], ['Choose "Add to Home Screen"', '➕'], ['Tap "Add" — done!', '✓']]
+        : [['Open your browser menu (⋮)', '⋮'], ['Choose "Install app" / "Add to Home screen"', '⤓'], ['Confirm — done!', '✓']];
+    document.getElementById('iosTitle').textContent = isIOS() ? 'Add to Home Screen' : 'Install this app';
+    const wrap = document.getElementById('iosSteps'); wrap.innerHTML = '';
+    steps.forEach((s, i) => {
+        const row = document.createElement('div'); row.className = 'ios-step';
+        row.innerHTML = '<span class="ios-num">'+(i+1)+'</span><span>'+s[0]+'  '+s[1]+'</span>';
+        wrap.appendChild(row);
+    });
+    document.getElementById('iosBack').classList.add('show');
+}
+function closeIos() { document.getElementById('iosBack').classList.remove('show'); }
 
 // ╔══════════════════════════════════════════╗
 //  INIT
@@ -1398,17 +1388,22 @@ window.addEventListener('load', () => {
     if (saved) {
         const sel = document.getElementById('staffName');
         sel.value = saved;
-        if (sel.value) {
-            ST.staff = saved;
-            fallbackSt();  drawTimeline();  refreshBtns();  doSync();
-        }
+        if (sel.value) { ST.staff = saved; fallbackSt(); drawTimeline(); refreshBtns(); doSync(); }
     }
     startGPS();
+
     const raw = localStorage.getItem('ibi_pending');
     if (raw) {
-        try { const p=JSON.parse(raw); showBanner('Pending punch: '+p.action+' at '+p.timestamp); }
-        catch {}
+        try { const p=JSON.parse(raw); showBanner('Pending punch: '+p.action+' at '+p.timestamp); } catch {}
         setTimeout(retryPending, 4000);
+    }
+
+    // iOS never fires beforeinstallprompt — surface the install affordances anyway
+    if (!isStandalone() && isIOS()) { showInstallUI(); maybeShowBanner(); }
+
+    // Register the service worker (PWA offline shell)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 });
 
