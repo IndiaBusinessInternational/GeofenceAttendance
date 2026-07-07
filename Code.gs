@@ -39,7 +39,7 @@ var HOURLY_RATE = 100;                                // Rs per hour
 var STAFF_NAMES = ['S. Aswin', 'M. Ajay'];            // ← add new staff names here (also the server-side allow-list)
 var APP_VERSION = 'v2.0';                             // shown in About; keep in sync with index.html badge
 
-// ── Server-side geofence (tamper-proofing) ───────────────────────
+// ── Server-side geofence (tamper-proofing, HARD REJECT) ──────────
 //   The browser geofence in index.html is only for UX. THESE checks are
 //   the authoritative gate — a punch is refused unless the phone proves it
 //   is physically at the warehouse with a good-enough GPS fix. This blocks
@@ -47,7 +47,7 @@ var APP_VERSION = 'v2.0';                             // shown in About; keep in
 //   allowed (the server used to record any coordinates, or none at all).
 var WH_LAT     = 8.202612;    // warehouse latitude  (must match index.html CFG.WAREHOUSE_LAT)
 var WH_LON     = 77.240076;   // warehouse longitude (must match index.html CFG.WAREHOUSE_LON)
-var MAX_DIST_M = 75;          // metres: max distance a punch may be recorded (client locks at 50; server adds boundary tolerance)
+var MAX_DIST_M = 75;          // metres: a punch beyond this from the warehouse is REJECTED (client locks at 50; server adds boundary tolerance)
 var MAX_ACC_M  = 150;         // metres: reject only clearly-garbage GPS fixes. Kept lenient so the network-location
                               //         fallback (for cheap phones that can't get precise GPS) still works on-site;
                               //         the DISTANCE check above is the real anti-home-punch guard.
@@ -721,8 +721,10 @@ function doPost(e) {
       return jsonOut({ status: 'error', message: 'Unknown staff member.' });
     }
 
-    // ── AUTHORITATIVE geofence + accuracy gate ──
-    //   Refuse the punch unless the phone is really at the warehouse.
+    // ── AUTHORITATIVE geofence + accuracy gate (hard reject) ──
+    //   Refuse the punch unless the phone is really at the warehouse with a
+    //   good-enough GPS fix. The browser geofence in index.html is only UX;
+    //   this server check is what actually blocks home / API-bypass punches.
     var latN = parseFloat(lat), lonN = parseFloat(lon), accN = parseFloat(accuracy);
     if (isNaN(latN) || isNaN(lonN)) {
       return jsonOut({ status: 'error', message: 'Location required to punch.' });
