@@ -639,7 +639,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <header class="app-header">
 
     <!-- Version badge — top-left -->
-    <span class="ver-badge" id="verBadge">v2.1</span>
+    <span class="ver-badge" id="verBadge">v2.2</span>
 
     <!-- Actions — top-right: Install · Theme toggle · Menu -->
     <div class="hdr-actions">
@@ -824,7 +824,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <div class="sheet-back" id="sheetBack" onclick="sheetBackTap(event)">
     <div class="sheet" role="dialog" aria-label="Menu">
         <div class="sheet-grab"></div>
-        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.1</span></div>
+        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.2</span></div>
 
         <button class="sheet-item" id="menuInstall" onclick="triggerInstall(); closeSheet()" style="display:none">
             <span class="si-ico">⤓</span> Install as App (PWA)
@@ -866,6 +866,12 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 // ╔══════════════════════════════════════════╗
 //  CONFIGURATION
 // ╚══════════════════════════════════════════╝
+// Storage access can throw on iOS Safari (private browsing / "Block All
+// Cookies") — a throw here must never take down the whole app.
+function lsGet(k)    { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); }    catch (e) {} }
+function lsDel(k)    { try { localStorage.removeItem(k); }    catch (e) {} }
+
 const CFG = {
     WAREHOUSE_LAT:  8.202612,
     WAREHOUSE_LON:  77.240076,
@@ -919,7 +925,7 @@ function fmtEntry(d) {
 //  THEME
 // ╚══════════════════════════════════════════╝
 (function () {
-    const t = localStorage.getItem('ibi_theme') || 'dark';
+    const t = lsGet('ibi_theme') || 'dark';
     if (t === 'light') applyTheme(true);
 })();
 
@@ -930,14 +936,14 @@ function applyTheme(isLight) {
     const knob2 = document.getElementById('knob2');
     if (isLight) {
         document.documentElement.setAttribute('data-theme', 'light');
-        localStorage.setItem('ibi_theme', 'light');
+        lsSet('ibi_theme', 'light');
         if (chk)  chk.checked  = true;
         if (chk2) chk2.checked = true;
         if (knob)  knob.textContent  = '🌙';
         if (knob2) knob2.textContent = '🌙';
     } else {
         document.documentElement.removeAttribute('data-theme');
-        localStorage.setItem('ibi_theme', 'dark');
+        lsSet('ibi_theme', 'dark');
         if (chk)  chk.checked  = false;
         if (chk2) chk2.checked = false;
         if (knob)  knob.textContent  = '☀';
@@ -1116,9 +1122,18 @@ function drawDots(n) {
 function onProfile() {
     const n = document.getElementById('staffName').value;
     ST.staff = n; ST.punchState = null; ST.punches = [];
-    localStorage.setItem('ibi_last_profile', n);
+    lsSet('ibi_last_profile', n);
     skeleton(); refreshBtns(); doSync();
 }
+
+// Safari (iOS) can set/restore the <select> value WITHOUT firing "change"
+// (form-state restore, picker quirks) — the name shows on screen but the app
+// never learns it and the punch buttons stay locked. Reconcile every second.
+function syncProfileFromSelect() {
+    const sel = document.getElementById('staffName');
+    if (sel && sel.value && sel.value !== ST.staff) onProfile();
+}
+setInterval(syncProfileFromSelect, 1000);
 
 // ╔══════════════════════════════════════════╗
 //  SERVER SYNC
@@ -1135,7 +1150,7 @@ function doSync() {
             if (d.status==='success') {
                 ST.punchState = d.currentState||'OUT';
                 ST.punches    = d.punches||[];
-                localStorage.setItem('ibi_state_'+ST.staff, d.currentState);
+                lsSet('ibi_state_'+ST.staff, d.currentState);
             } else fallbackSt();
         })
         .catch(fallbackSt)
@@ -1147,7 +1162,7 @@ function doSync() {
 }
 
 function fallbackSt() {
-    const c = localStorage.getItem('ibi_state_'+ST.staff);
+    const c = lsGet('ibi_state_'+ST.staff);
     ST.punchState = (c==='IN'||c==='OUT') ? c : 'OUT';
 }
 
@@ -1299,8 +1314,8 @@ function sendPunch(action, la, lo, ac) {
             if (d.status === 'success') {
                 const t = fmtTime(new Date());
                 ST.punchState = action;
-                localStorage.setItem('ibi_state_'+ST.staff, action);
-                localStorage.removeItem('ibi_pending');
+                lsSet('ibi_state_'+ST.staff, action);
+                lsDel('ibi_pending');
                 hideBanner(); speak();
                 showMsg('✓ '+action+' recorded at '+t, 'success');
                 doSync();   // reconcile timeline strictly from the server (source of truth)
@@ -1319,21 +1334,21 @@ function savePending(action, la, lo, ac) {
     const t = fmtTime(new Date());
     const p = { staffName:ST.staff, action, lat:la.toFixed(6), lon:lo.toFixed(6),
                 accuracy:Math.round(ac), timestamp:t, retries:0 };
-    localStorage.setItem('ibi_pending', JSON.stringify(p));
+    lsSet('ibi_pending', JSON.stringify(p));
     ST.punchState = action;
     ST.punches.push({ type:action, time:t, pending:true });
-    localStorage.setItem('ibi_state_'+ST.staff, action);
+    lsSet('ibi_state_'+ST.staff, action);
     drawTimeline();
     showBanner(action+' at '+t+' · queued — will retry on reconnect');
     showMsg('Network error. Punch saved offline and will retry automatically.', 'warning');
 }
 
 function retryPending() {
-    const raw = localStorage.getItem('ibi_pending');
+    const raw = lsGet('ibi_pending');
     if (!raw) return;
     let p;
-    try { p = JSON.parse(raw); } catch { localStorage.removeItem('ibi_pending'); return; }
-    if (p.retries > 6) { localStorage.removeItem('ibi_pending'); hideBanner(); return; }
+    try { p = JSON.parse(raw); } catch { lsDel('ibi_pending'); return; }
+    if (p.retries > 6) { lsDel('ibi_pending'); hideBanner(); return; }
     showBanner('Retrying '+p.action+' from '+p.timestamp+'...');
     const fd = new FormData();
     Object.entries(p).forEach(([k,v]) => fd.append(k,v));
@@ -1342,11 +1357,11 @@ function retryPending() {
         .then(r => r.json())
         .then(d => {
             if (d.status==='success') {
-                localStorage.removeItem('ibi_pending'); hideBanner();
+                lsDel('ibi_pending'); hideBanner();
                 showMsg('Pending punch synced to server.','success'); doSync();
-            } else { p.retries++; localStorage.setItem('ibi_pending',JSON.stringify(p)); }
+            } else { p.retries++; lsSet('ibi_pending',JSON.stringify(p)); }
         })
-        .catch(() => { p.retries++; localStorage.setItem('ibi_pending',JSON.stringify(p)); });
+        .catch(() => { p.retries++; lsSet('ibi_pending',JSON.stringify(p)); });
 }
 
 function showBanner(t) { document.getElementById('offTxt').textContent=t; document.getElementById('offBanner').classList.add('show'); }
@@ -1400,7 +1415,7 @@ const DISMISS_DAYS = 1;   // re-prompt after just 1 day (well under 7)
 function isStandalone() { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
 function isIOS()        { return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream; }
 function bannerDismissedRecently() {
-    const ts = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
+    const ts = parseInt(lsGet(DISMISS_KEY) || '0', 10);
     return ts && (Date.now() - ts) < DISMISS_DAYS * 86400000;
 }
 function showInstallUI() {
@@ -1416,7 +1431,7 @@ function maybeShowBanner() {
     setTimeout(() => { if (!isStandalone()) document.getElementById('ibanner').classList.add('show'); }, 1500);
 }
 function dismissBanner() {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    lsSet(DISMISS_KEY, String(Date.now()));
     document.getElementById('ibanner').classList.remove('show');
 }
 function triggerInstall() {
@@ -1460,15 +1475,17 @@ function closeIos() { document.getElementById('iosBack').classList.remove('show'
 //  INIT
 // ╚══════════════════════════════════════════╝
 window.addEventListener('load', () => {
-    const saved = localStorage.getItem('ibi_last_profile');
+    const saved = lsGet('ibi_last_profile');
     if (saved) {
         const sel = document.getElementById('staffName');
         sel.value = saved;
         if (sel.value) { ST.staff = saved; fallbackSt(); drawTimeline(); refreshBtns(); doSync(); }
     }
+    // Belt-and-braces for iOS: catch value changes even if "change" never fires
+    document.getElementById('staffName').addEventListener('input', syncProfileFromSelect);
     initLocation();
 
-    const raw = localStorage.getItem('ibi_pending');
+    const raw = lsGet('ibi_pending');
     if (raw) {
         try { const p=JSON.parse(raw); showBanner('Pending punch: '+p.action+' at '+p.timestamp); } catch {}
         setTimeout(retryPending, 4000);
@@ -1488,6 +1505,7 @@ window.addEventListener('online', retryPending);
 // iOS suspends the page when it goes to the background and silently kills the
 // GPS watch — restart it (and re-sync) when the app returns to the foreground.
 function resumeApp() {
+    syncProfileFromSelect();
     if (ST.staff) doSync();
     if (ST.denied || !navigator.geolocation) return;
     if (document.getElementById('locCta').classList.contains('show')) return;
