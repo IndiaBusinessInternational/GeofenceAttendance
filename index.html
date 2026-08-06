@@ -412,6 +412,21 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 .sync-btn.spinning svg { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Tap-to-enable location (iOS shows its permission prompt reliably only
+   for a request made from a user gesture) */
+.loc-cta {
+    display: none; width: 100%; margin-bottom: 13px;
+    align-items: center; justify-content: center; gap: 9px;
+    background: var(--cyan); color: #000; border: none;
+    font-family: var(--sans); font-size: 14px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    padding: 14px; border-radius: 11px; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(0,197,255,.30);
+    transition: transform .12s;
+}
+.loc-cta.show { display: flex; }
+.loc-cta:active { transform: scale(.97); }
+
 .gps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 13px; }
 .gps-cell { background: var(--surf2); border: 1px solid var(--bdr); border-radius: 9px; padding: 10px 13px; }
 .gc-lbl {
@@ -548,7 +563,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 ═══════════════════════════════════════════════ */
 .sheet-back {
     display: none; position: fixed; inset: 0; z-index: 70;
-    background: rgba(0,0,0,.55); backdrop-filter: blur(2px);
+    background: rgba(0,0,0,.55); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
     align-items: flex-end; justify-content: center;
 }
 .sheet-back.show { display: flex; animation: fade .2s both; }
@@ -624,7 +639,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <header class="app-header">
 
     <!-- Version badge — top-left -->
-    <span class="ver-badge" id="verBadge">v2.0</span>
+    <span class="ver-badge" id="verBadge">v2.1</span>
 
     <!-- Actions — top-right: Install · Theme toggle · Menu -->
     <div class="hdr-actions">
@@ -707,6 +722,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
     <div class="card">
         <div class="card-hd"><span class="card-hd-lbl">Geofence Status</span></div>
         <div class="card-bd">
+            <button class="loc-cta" id="locCta" onclick="userEnableLocation()">📍 Tap to Enable Location</button>
             <div class="gps-toprow">
                 <div id="gpsBadge" class="gps-badge acquiring">
                     <span class="bdot pulse"></span>
@@ -808,7 +824,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <div class="sheet-back" id="sheetBack" onclick="sheetBackTap(event)">
     <div class="sheet" role="dialog" aria-label="Menu">
         <div class="sheet-grab"></div>
-        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.0</span></div>
+        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.1</span></div>
 
         <button class="sheet-item" id="menuInstall" onclick="triggerInstall(); closeSheet()" style="display:none">
             <span class="si-ico">⤓</span> Install as App (PWA)
@@ -871,6 +887,9 @@ const ST = {
     gpsMode: 'high',
     watchId: null,
     fallbackDone: false,
+    denied: false,
+    hintShown: false,
+    hiddenAt: 0,
 };
 
 // ╔══════════════════════════════════════════╗
@@ -955,6 +974,40 @@ function hav(la1, lo1, la2, lo2) {
 // ╔══════════════════════════════════════════╗
 //  GPS — Two-attempt fallback system
 // ╚══════════════════════════════════════════╝
+// iOS shows its location prompt reliably only when the request comes from a
+// user gesture, so probe the permission first and gate on a tap when needed.
+function initLocation() {
+    if (!navigator.geolocation) { gBadge('gps-error', 'GPS Not Supported'); return; }
+    if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' }).then(p => {
+            if (p.state === 'denied')                 locDenied();
+            else if (p.state === 'prompt' && isIOS()) showLocCta();
+            else                                      startGPS();
+            p.onchange = function () {
+                if (p.state === 'granted')     { hideLocCta(); ST.denied = false; startGPS(); }
+                else if (p.state === 'denied') { hideLocCta(); locDenied(); }
+            };
+        }).catch(() => startGPS());
+    } else startGPS();
+}
+
+function showLocCta() {
+    document.getElementById('locCta').classList.add('show');
+    gBadge('acquiring', 'Location Permission Needed');
+    const st = document.getElementById('stabTxt');
+    st.textContent = 'Waiting...'; st.className = 'stab-txt';
+}
+function hideLocCta() { document.getElementById('locCta').classList.remove('show'); }
+function userEnableLocation() { hideLocCta(); ST.denied = false; startGPS(); }
+
+function locDenied() {
+    ST.denied = true;
+    gBadge('gps-error', 'Location Permission Denied');
+    showMsg(isIOS()
+        ? 'Location is blocked. On iPhone: Settings → Privacy & Security → Location Services → ON, then find Safari Websites (or this app) → set "While Using the App" and turn ON Precise Location. Then reopen this page.'
+        : 'Location is blocked. Allow Location for your browser in phone Settings, then reload this page.', 'error');
+}
+
 function startGPS() {
     if (!navigator.geolocation) { gBadge('gps-error', 'GPS Not Supported'); return; }
     ST.gpsMode = 'high'; ST.watchId = null; ST.fallbackDone = false;
@@ -969,10 +1022,8 @@ function launchHighAccuracy() {
         gOk,
         function(err) {
             if (err.code === 3 && !ST.fallbackDone) { launchNetworkFallback(); }
-            else if (err.code === 1) {
-                gBadge('gps-error', 'Location Permission Denied');
-                showMsg('Please allow Location access in your phone settings.', 'error');
-            } else { if (!ST.fallbackDone) launchNetworkFallback(); }
+            else if (err.code === 1) { locDenied(); }
+            else { if (!ST.fallbackDone) launchNetworkFallback(); }
         },
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 6000 }
     );
@@ -986,11 +1037,14 @@ function launchNetworkFallback() {
     ST.watchId = navigator.geolocation.watchPosition(
         gOk,
         function(err) {
-            const msgs = { 1:'Location Permission Denied. Enable in phone Settings.',
-                           2:'Location signal unavailable. Check Location is ON.',
-                           3:'Location Timeout. Check Location settings.' };
-            gBadge('gps-error', 'Location Error');
-            showMsg(msgs[err.code] || 'Location error. Please check phone settings.', 'error');
+            if (err.code === 1) { locDenied(); }
+            else {
+                const iosHint = isIOS() ? ' iPhone: Settings → Privacy & Security → Location Services.' : '';
+                const msgs = { 2:'Location signal unavailable. Check Location is ON.'+iosHint,
+                               3:'Location Timeout. Check Location settings.'+iosHint };
+                gBadge('gps-error', 'Location Error');
+                showMsg(msgs[err.code] || 'Location error. Please check phone settings.', 'error');
+            }
             document.getElementById('distVal').textContent = '—';
             document.getElementById('accVal').textContent  = '—';
         },
@@ -1011,6 +1065,15 @@ function gOk(pos) {
     const n    = ST.buf.filter(Boolean).length;
     const allO = ST.buf.length >= CFG.BUF_SIZE && n === 0;
     ST.steady  = n >= CFG.STAB_NEED;
+
+    // A fix this coarse usually means iOS "Precise Location" is OFF (≈ ±2 km) —
+    // the 50 m fence can never lock, so tell the staff why.
+    if (!ok && ac > 300 && !ST.hintShown) {
+        ST.hintShown = true;
+        showMsg(isIOS()
+            ? 'Your location is approximate (± ' + ac + ' m). Turn ON "Precise Location": Settings → Privacy & Security → Location Services → Safari Websites (or this app) → Precise Location.'
+            : 'Your location is approximate (± ' + ac + ' m). Turn ON high-accuracy / precise location in phone Settings.', 'warning');
+    }
 
     const modeTag = (ST.gpsMode === 'network') ? ' (Network)' : '';
     document.getElementById('distVal').textContent = di + ' m';
@@ -1307,6 +1370,19 @@ function speak() {
     }
 }
 
+// iOS mutes speechSynthesis until it has been triggered by a user gesture —
+// unlock it with a silent utterance on the first tap.
+let _spkReady = false;
+function unlockSpeech() {
+    if (_spkReady || !('speechSynthesis' in window)) return;
+    _spkReady = true;
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+}
+document.addEventListener('touchend', unlockSpeech, { once: true, passive: true });
+document.addEventListener('click',    unlockSpeech, { once: true });
+
 // ╔══════════════════════════════════════════╗
 //  SETTINGS SHEET
 // ╚══════════════════════════════════════════╝
@@ -1390,7 +1466,7 @@ window.addEventListener('load', () => {
         sel.value = saved;
         if (sel.value) { ST.staff = saved; fallbackSt(); drawTimeline(); refreshBtns(); doSync(); }
     }
-    startGPS();
+    initLocation();
 
     const raw = localStorage.getItem('ibi_pending');
     if (raw) {
@@ -1408,6 +1484,23 @@ window.addEventListener('load', () => {
 });
 
 window.addEventListener('online', retryPending);
+
+// iOS suspends the page when it goes to the background and silently kills the
+// GPS watch — restart it (and re-sync) when the app returns to the foreground.
+function resumeApp() {
+    if (ST.staff) doSync();
+    if (ST.denied || !navigator.geolocation) return;
+    if (document.getElementById('locCta').classList.contains('show')) return;
+    ST.buf = []; ST.steady = false;
+    startGPS();
+    refreshBtns();
+}
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { ST.hiddenAt = Date.now(); return; }
+    if (ST.hiddenAt && Date.now() - ST.hiddenAt > 30000) resumeApp();
+    else if (ST.staff) doSync();
+});
+window.addEventListener('pageshow', e => { if (e.persisted) resumeApp(); });
 </script>
 
 </body>
