@@ -1,6 +1,6 @@
 /* IBI Staff Attendance — Service Worker
    Bump CACHE on every release (keep in sync with the on-screen version badge). */
-const CACHE = "ibi-attendance-v2.2";
+const CACHE = "ibi-attendance-v2.3";
 const CORE = [
   "./",
   "./index.html",
@@ -13,7 +13,18 @@ const CORE = [
 
 self.addEventListener("install", (e) => {
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).catch(() => {}));
+  // Fetch each file with cache:"reload" — a plain addAll() goes through the
+  // HTTP cache, which can precache the PREVIOUS build's files under the new
+  // cache name and ship stale JS behind a bumped version badge.
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => Promise.all(
+        CORE.map((u) => fetch(new Request(u, { cache: "reload" }))
+          .then((res) => (res && res.ok) ? c.put(u, res) : null)
+          .catch(() => null))
+      ))
+      .catch(() => {})
+  );
 });
 
 self.addEventListener("activate", (e) => {

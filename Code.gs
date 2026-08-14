@@ -37,7 +37,22 @@ var DATE_FORMAT = 'dd-MM-yyyy';                       // "01-05-2026"
 var HEADER_ROWS = 1;
 var HOURLY_RATE = 100;                                // Rs per hour
 var STAFF_NAMES = ['S. Aswin', 'M. Ajay'];            // ← add new staff names here (also the server-side allow-list)
-var APP_VERSION = 'v2.0';                             // shown in About; keep in sync with index.html badge
+var APP_VERSION = 'v2.3';                             // shown in About; keep in sync with index.html badge
+
+// ── Anti-repeat-punch guard (v2.3) ───────────────────────────────
+//   The v2.0 firewall only enforced IN/OUT *alternation*. It had no notion of
+//   TIME, so a staff member who tapped OUT and then re-tapped a few seconds
+//   later (thinking the first tap "didn't work") produced a perfectly legal
+//   alternating punch that opened a brand-new shift column — e.g. 11-08-2026
+//   OUT-2 7:35:02 PM then IN-3 7:35:43 PM, 41 seconds apart. Those are the
+//   repeated entries seen in the sheet; they are mis-taps, not staff fraud.
+//   A punch landing within MIN_PUNCH_GAP_SEC of the previous one is now
+//   refused, which is what every real attendance system does.
+var MIN_PUNCH_GAP_SEC = 120;   // seconds: reject a punch this soon after the previous one
+var STALE_PUNCH_SEC   = 900;   // seconds: refuse an offline-queued punch older than this (stops
+                               //          a punch queued in the morning replaying in the evening)
+var REPLAY_CACHE_SEC  = 1800;  // seconds to remember a punchId for idempotent retries
+var LOCK_WAIT_MS      = 25000; // how long a concurrent punch waits for the script lock
 
 // ── Server-side geofence (tamper-proofing, HARD REJECT) ──────────
 //   The browser geofence in index.html is only for UX. THESE checks are
@@ -90,6 +105,8 @@ function onOpen() {
     .addItem('🔁  Recalculate All Months',   'menuRecalcAllMonths')
     .addSeparator()
     .addItem('🧹  Fix Duplicate Date Rows',  'menuFixDuplicateRows')
+    .addItem('🔍  Scan for Repeated Punches','menuScanRepeatedPunches')
+    .addItem('🧽  Remove Repeated Punches',  'menuRemoveRepeatedPunches')
     .addItem('📦  Migrate Legacy Tabs',      'menuMigrateLegacy')
     .addItem('ℹ️  About',                    'menuAbout')
     .addToUi();
@@ -316,6 +333,139 @@ function menuMigrateLegacy() {
   SpreadsheetApp.getUi().alert('Migrate Legacy Tabs', msg, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
+// ╔══════════════════════════════════════════════════════════════════╗
+//   REPEATED-PUNCH REPAIR (v2.3)
+//
+//   Cleans up the mis-taps the old build let through: a staff member taps
+//   OUT, thinks nothing happened, and taps IN again seconds later. That
+//   alternates correctly, so v2.0 accepted it and split one real shift into
+//   two — the repeated entries visible in the sheet.
+//
+//   A "cluster" is a run of consecutive punches each landing within
+//   MIN_PUNCH_GAP_SEC of the one before it. Punches must stay strictly
+//   IN,OUT,IN,OUT..., so an even number must always be dropped:
+//     • even cluster {OUT,IN}        → drop all  (the shift never really broke)
+//     • odd  cluster {IN,OUT,IN}     → keep the first, drop the rest
+//   The GPS audit log in column O is deliberately left untouched, so the
+//   original taps remain on record even after the times are collapsed.
+// ╚══════════════════════════════════════════════════════════════════╝
+
+function menuScanRepeatedPunches()   { repeatedPunchTool(false); }
+
+function menuRemoveRepeatedPunches() {
+  var ui = SpreadsheetApp.getUi();
+  var ok = ui.alert(
+    'Remove Repeated Punches',
+    'This rewrites the punch times on affected rows and recalculates salary.\n\n' +
+    'Run "Scan for Repeated Punches" first and check the list.\n' +
+    'The GPS audit log (column O) is kept intact.\n\nProceed?',
+    ui.ButtonSet.YES_NO
+  );
+  if (ok !== ui.Button.YES) return;
+  repeatedPunchTool(true);
+}
+
+function repeatedPunchTool(apply) {
+  var ss     = SpreadsheetApp.getActiveSpreadsheet();
+  var report = [];
+  var fixed  = 0;
+  var touchedSheets = [];
+
+  ss.getSheets().forEach(function(sh) {
+    var name = sh.getName();
+    if (!STAFF_NAMES.some(function(s) { return name.indexOf(s) === 0; })) return;
+
+    var last = sh.getLastRow();
+    if (last <= HEADER_ROWS) return;
+
+    var values      = sh.getRange(HEADER_ROWS + 1, 1, last - HEADER_ROWS, 11).getValues();
+    var sheetTouched = false;
+
+    for (var r = 0; r < values.length; r++) {
+      var rowVals = values[r];
+      if (rowVals[0] === '' || rowVals[0] == null) continue;
+
+      // Collect this day's punches in order
+      var punches = [];
+      for (var c = 1; c <= 10; c++) {
+        if (rowVals[c] === '' || rowVals[c] == null) break;
+        punches.push({ text: punchCellToText(rowVals[c]), sec: punchCellToSecOfDay(rowVals[c]) });
+      }
+      if (punches.length < 2) continue;
+
+      // Mark punches to drop, cluster by cluster
+      var drop = [];
+      for (var i = 0; i < punches.length; i++) drop.push(false);
+
+      var i2 = 0;
+      while (i2 < punches.length) {
+        var end = i2;   // last index still inside this cluster
+        while (end + 1 < punches.length &&
+               punches[end].sec !== null && punches[end + 1].sec !== null &&
+               (punches[end + 1].sec - punches[end].sec) < MIN_PUNCH_GAP_SEC) {
+          end++;
+        }
+        var size = end - i2 + 1;
+        if (size > 1) {
+          // even cluster → drop all; odd cluster → keep the first
+          var from = (size % 2 === 0) ? i2 : i2 + 1;
+          for (var k = from; k <= end; k++) drop[k] = true;
+        }
+        i2 = end + 1;
+      }
+
+      var kept    = [];
+      var removed = [];
+      for (var j = 0; j < punches.length; j++) {
+        if (drop[j]) removed.push(punches[j].text);
+        else         kept.push(punches[j].text);
+      }
+      if (!removed.length) continue;
+
+      var dateTxt = punchDateText(rowVals[0]);
+      report.push('• ' + name + ' · ' + dateTxt +
+                  '\n    was:     ' + punches.map(function(p) { return p.text; }).join('  ') +
+                  '\n    becomes: ' + (kept.length ? kept.join('  ') : '(no punches left)') +
+                  '\n    removed: ' + removed.join('  '));
+      fixed++;
+
+      if (apply) {
+        var out = [];
+        for (var w = 0; w < 10; w++) out.push(w < kept.length ? kept[w] : '');
+        sh.getRange(HEADER_ROWS + 1 + r, 2, 1, 10).setValues([out]);
+        sheetTouched = true;
+      }
+    }
+
+    if (apply && sheetTouched) { recalcSalary(sh); touchedSheets.push(name); }
+  });
+
+  var ui    = SpreadsheetApp.getUi();
+  var title = apply ? 'Repeated Punches Removed' : 'Scan for Repeated Punches';
+
+  if (!fixed) {
+    ui.alert(title, 'No repeated punches found.\n\nAny two punches closer together than ' +
+                    MIN_PUNCH_GAP_SEC + ' seconds would be flagged here.', ui.ButtonSet.OK);
+    return;
+  }
+
+  var head = apply
+    ? '✓ Cleaned ' + fixed + ' day(s).\nSalary recalculated on: ' + touchedSheets.join(', ') + '\n\n'
+    : 'Found ' + fixed + ' day(s) with repeated punches.\nNothing has been changed — run ' +
+      '"Remove Repeated Punches" to apply.\n\n';
+
+  // Alert bodies get truncated, so keep the dialog short and log the rest
+  var body = report.join('\n\n');
+  Logger.log(head + body);
+  ui.alert(title, head + (body.length > 1200 ? body.slice(0, 1200) + '\n\n…full list in View → Logs.' : body), ui.ButtonSet.OK);
+}
+
+// Date cell -> "dd-MM-yyyy" text for the repair report
+function punchDateText(cell) {
+  if (cell instanceof Date) return Utilities.formatDate(cell, TZ, DATE_FORMAT);
+  return String(cell == null ? '' : cell).trim();
+}
+
 function menuAbout() {
   SpreadsheetApp.getUi().alert(
     'IBI Staff Attendance · Month-Wise Edition\n' +
@@ -324,7 +474,8 @@ function menuAbout() {
     'Hourly rate: Rs ' + HOURLY_RATE + '\n' +
     'Staff: ' + STAFF_NAMES.join(', ') + '\n' +
     'Time zone: ' + TZ + '\n' +
-    'Geofence: ' + MAX_DIST_M + 'm · max GPS error ' + MAX_ACC_M + 'm (server-enforced)\n\n' +
+    'Geofence: ' + MAX_DIST_M + 'm · max GPS error ' + MAX_ACC_M + 'm (server-enforced)\n' +
+    'Min gap between punches: ' + MIN_PUNCH_GAP_SEC + 's (server-enforced)\n\n' +
     'How it works:\n' +
     '  • Every staff member gets a fresh tab each month\n' +
     '  • Tabs are auto-created on the first punch of the month\n' +
@@ -701,6 +852,26 @@ function doGet(e) {
 //   doPost — records a punch into the correct monthly sheet
 // ╚══════════════════════════════════════════════════════════════════╝
 function doPost(e) {
+  // ── Serialise every write (v2.3) ──────────────────────────────
+  //   Without a lock, two punches arriving together both read the sheet
+  //   BEFORE either writes, so both compute the same "next empty" target —
+  //   or, if the second read lands just after the first write, it appends a
+  //   SECOND row for the same date. The lock makes the read-decide-write
+  //   sequence atomic, which is the only way the checks below can hold.
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(LOCK_WAIT_MS);
+  } catch (lockErr) {
+    return jsonOut({ status: 'error', message: 'Server busy — please tap again in a moment.' });
+  }
+  try {
+    return doPostLocked(e);
+  } finally {
+    try { lock.releaseLock(); } catch (ignore) {}
+  }
+}
+
+function doPostLocked(e) {
   try {
     if (!checkToken(e.parameter.token)) {
       return jsonOut({ status: 'error', message: 'Unauthorized' });
@@ -719,6 +890,34 @@ function doPost(e) {
     // ── Allow-list: only known staff may punch (blocks junk tabs) ──
     if (STAFF_NAMES.indexOf(staffName) === -1) {
       return jsonOut({ status: 'error', message: 'Unknown staff member.' });
+    }
+
+    // ── Idempotent retry guard (v2.3) ─────────────────────────────
+    //   The phone queues a punch whenever the fetch rejects — but a fetch also
+    //   rejects when the request DID reach us and only the reply was lost on a
+    //   flaky mobile connection. Replaying that punch used to write a second
+    //   entry. The client now stamps each punch with a punchId, so a replay of
+    //   one already recorded is answered "success" without touching the sheet.
+    var punchId = (e.parameter.punchId || '').trim();
+    var cache   = CacheService.getScriptCache();
+    if (punchId) {
+      if (cache.get('punch_' + punchId)) {
+        return jsonOut({ status: 'success', duplicate: true, message: 'Punch already recorded.' });
+      }
+    }
+
+    // ── Stale-queue guard (v2.3) ──────────────────────────────────
+    //   A queued punch that never got through must not surface hours later and
+    //   land in a completely different shift slot. Past this age it is dropped.
+    var clientTs = parseInt(e.parameter.clientTs || '', 10);
+    if (!isNaN(clientTs) && clientTs > 0) {
+      var ageSec = (new Date().getTime() - clientTs) / 1000;
+      if (ageSec > STALE_PUNCH_SEC) {
+        return jsonOut({
+          status: 'error', stale: true,
+          message: 'This queued punch is ' + Math.round(ageSec / 60) + ' minutes old and was discarded. Please punch again.'
+        });
+      }
     }
 
     // ── AUTHORITATIVE geofence + accuracy gate (hard reject) ──
@@ -766,6 +965,7 @@ function doPost(e) {
       sheet.getRange(newRow, 2).setValue(timeNow);
       logGPS(sheet, newRow, action, lat, lon, accuracy, now);
       recalcSalary(sheet);
+      if (punchId) cache.put('punch_' + punchId, '1', REPLAY_CACHE_SEC);
       return jsonOut({ status: 'success' });
     }
 
@@ -787,10 +987,32 @@ function doPost(e) {
       return jsonOut({ status: 'error', message: 'You are currently clocked IN. Cannot punch IN again.' });
     }
 
+    // ── Minimum-gap guard (v2.3) ───────────────────────────────────
+    //   Alternation alone is not enough: a re-tap seconds after a real punch
+    //   alternates correctly and so used to be accepted, opening a spurious
+    //   shift. Anything closer together than MIN_PUNCH_GAP_SEC is a mis-tap.
+    //   Both sides are reduced to seconds-since-IST-midnight, so no Date is
+    //   rebuilt from a formatted string and the comparison cannot drift.
+    var prevSec = punchCellToSecOfDay(row[emptyColIdx - 1]);
+    var nowSec  = hmsToSecOfDay(Utilities.formatDate(now, TZ, 'HH:mm:ss'));
+    if (prevSec !== null && nowSec !== null) {
+      var gapSec = nowSec - prevSec;
+      if (gapSec >= 0 && gapSec < MIN_PUNCH_GAP_SEC) {
+        var waitSec = Math.ceil(MIN_PUNCH_GAP_SEC - gapSec);
+        return jsonOut({
+          status: 'error', tooSoon: true, retryAfterSec: waitSec,
+          message: 'Your ' + (expectIN ? 'OUT' : 'IN') + ' punch at ' +
+                   punchCellToText(row[emptyColIdx - 1]) + ' is already recorded. ' +
+                   'Please wait ' + waitSec + ' more second' + (waitSec === 1 ? '' : 's') + ' before punching again.'
+        });
+      }
+    }
+
     var sheetRow = ri + 1;
     sheet.getRange(sheetRow, 1 + emptyColIdx).setValue(timeNow);
     logGPS(sheet, sheetRow, action, lat, lon, accuracy, now);
     recalcSalary(sheet);
+    if (punchId) cache.put('punch_' + punchId, '1', REPLAY_CACHE_SEC);
     return jsonOut({ status: 'success' });
 
   } catch (err) {
@@ -830,6 +1052,47 @@ function findTodayRow(data, todayY, todayM, todayD) {
     }
   }
   return -1;
+}
+
+// ── Punch-time helpers (v2.3) ────────────────────────────────────
+//   A punch cell holds either the text this script writes ("08:51:00 AM") or,
+//   on hand-edited rows, a real Date. Both reduce to seconds-since-midnight.
+
+// "HH:mm:ss" (24h) -> seconds since midnight
+function hmsToSecOfDay(hms) {
+  var m = String(hms).match(/^(\d{1,2}):(\d{2}):(\d{2})$/);
+  if (!m) return null;
+  return parseInt(m[1], 10) * 3600 + parseInt(m[2], 10) * 60 + parseInt(m[3], 10);
+}
+
+// Punch cell -> seconds since midnight (null if the cell is empty/unparseable)
+function punchCellToSecOfDay(cell) {
+  if (cell === '' || cell == null) return null;
+
+  if (cell instanceof Date) {
+    return hmsToSecOfDay(Utilities.formatDate(cell, TZ, 'HH:mm:ss'));
+  }
+
+  var s = String(cell).trim();
+  // "8:51:00 AM" / "08:51:00 PM"  (12-hour, as written by this script)
+  var m = s.match(/^(\d{1,2}):(\d{2}):(\d{2})\s*([AaPp])\.?[Mm]\.?$/);
+  if (m) {
+    var h = parseInt(m[1], 10) % 12;
+    if (m[4].toLowerCase() === 'p') h += 12;
+    return h * 3600 + parseInt(m[2], 10) * 60 + parseInt(m[3], 10);
+  }
+  // "17:48:05" / "17:48"  (24-hour fallback)
+  m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (m) {
+    return parseInt(m[1], 10) * 3600 + parseInt(m[2], 10) * 60 + parseInt(m[3] || '0', 10);
+  }
+  return null;
+}
+
+// Punch cell -> display text for messages
+function punchCellToText(cell) {
+  if (cell instanceof Date) return Utilities.formatDate(cell, TZ, TIME_FORMAT);
+  return String(cell == null ? '' : cell).trim();
 }
 
 function nextEmptyRow(sheet) {

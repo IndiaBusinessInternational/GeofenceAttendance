@@ -639,7 +639,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <header class="app-header">
 
     <!-- Version badge — top-left -->
-    <span class="ver-badge" id="verBadge">v2.2</span>
+    <span class="ver-badge" id="verBadge">v2.3</span>
 
     <!-- Actions — top-right: Install · Theme toggle · Menu -->
     <div class="hdr-actions">
@@ -824,7 +824,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <div class="sheet-back" id="sheetBack" onclick="sheetBackTap(event)">
     <div class="sheet" role="dialog" aria-label="Menu">
         <div class="sheet-grab"></div>
-        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.2</span></div>
+        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.3</span></div>
 
         <button class="sheet-item" id="menuInstall" onclick="triggerInstall(); closeSheet()" style="display:none">
             <span class="si-ico">⤓</span> Install as App (PWA)
@@ -880,6 +880,12 @@ const CFG = {
     BUF_SIZE:       5,
     GAS_URL:        'https://script.google.com/macros/s/AKfycbztj_cU2LtHlHztnFk9wP84pDe8BwLbtzfSoiZfVwT_d5cc4PDjM_qTV9m9LPUxfPbj6Q/exec',
     TOKEN:          'IBI_ATTEND_2026',
+    // Seconds both punch buttons stay locked after a punch is recorded.
+    // Keep in sync with MIN_PUNCH_GAP_SEC in Code.gs.
+    COOLDOWN_SEC:   120,
+    // Drop an offline-queued punch older than this instead of replaying it
+    // into a slot it no longer belongs in. Keep ≤ STALE_PUNCH_SEC in Code.gs.
+    PENDING_MAX_AGE_MS: 15*60*1000,
 };
 
 // ╔══════════════════════════════════════════╗
@@ -896,6 +902,9 @@ const ST = {
     denied: false,
     hintShown: false,
     hiddenAt: 0,
+    cooldownUntil: 0,   // epoch ms; both punch buttons stay locked until then
+    cdWas: 0,           // last countdown value drawn, so expiry repaints once
+    retrying: false,    // guards the offline queue against overlapping retries
 };
 
 // ╔══════════════════════════════════════════╗
@@ -962,6 +971,7 @@ function tick() {
     const e = document.getElementById('entryVal');
     if (c) c.textContent = s;
     if (e) e.textContent = s;
+    cooldownTick();
 }
 tick();
 setInterval(tick, 1000);
@@ -1123,6 +1133,7 @@ function onProfile() {
     const n = document.getElementById('staffName').value;
     ST.staff = n; ST.punchState = null; ST.punches = [];
     lsSet('ibi_last_profile', n);
+    loadCooldown();     // a cooldown survives reloads and profile switches
     skeleton(); refreshBtns(); doSync();
 }
 
@@ -1167,6 +1178,54 @@ function fallbackSt() {
 }
 
 // ╔══════════════════════════════════════════╗
+//  PUNCH COOLDOWN
+//
+//  The repeated entries in the sheet came from re-taps: a punch lands, the
+//  opposite button goes live again the same instant, and a second tap a few
+//  seconds later opens a whole new shift. Locking both buttons for a short
+//  window after every punch — with a visible countdown so the staff member
+//  can see the punch registered — is what stops it at the source. The server
+//  enforces the same window, so a reload or a second device cannot skip it.
+// ╚══════════════════════════════════════════╝
+function cdKey()  { return 'ibi_cooldown_' + ST.staff; }
+
+function cooldownLeft() {
+    return Math.max(0, Math.ceil((ST.cooldownUntil - Date.now()) / 1000));
+}
+
+function startCooldown(sec) {
+    const s = (typeof sec === 'number' && sec > 0) ? sec : CFG.COOLDOWN_SEC;
+    ST.cooldownUntil = Date.now() + s*1000;
+    if (ST.staff) lsSet(cdKey(), String(ST.cooldownUntil));
+    refreshBtns();
+}
+
+// Restore an in-flight cooldown after a reload / app restart.
+function loadCooldown() {
+    ST.cooldownUntil = 0;
+    if (!ST.staff) return;
+    const v = parseInt(lsGet(cdKey()) || '0', 10);
+    if (v > Date.now()) ST.cooldownUntil = v;
+    else if (v) lsDel(cdKey());
+}
+
+function fmtCd(sec) {
+    const m = Math.floor(sec/60), s = sec%60;
+    return m ? m + ':' + String(s).padStart(2,'0') : sec + 's';
+}
+
+// Drives the countdown label; runs off the existing 1-second tick.
+// The flag lives on ST (declared well above tick()) rather than in a module
+// `let` down here — tick() is called immediately at definition time, and a
+// `let` declared after that point is still in its temporal dead zone, which
+// throws and kills every top-level statement that follows it.
+function cooldownTick() {
+    const left = cooldownLeft();
+    if (left || ST.cdWas) refreshBtns();   // repaint while counting, and once on expiry
+    ST.cdWas = left;
+}
+
+// ╔══════════════════════════════════════════╗
 //  BUTTONS
 // ╚══════════════════════════════════════════╝
 function refreshBtns() {
@@ -1181,6 +1240,17 @@ function refreshBtns() {
     if (!ST.staff) {
         iB.disabled = oB.disabled = true;
         iA.textContent = oA.textContent = '🔒';
+        gh.style.display = 'none';
+        return;
+    }
+
+    // Cooldown wins over everything: both buttons locked, countdown shown.
+    const cd = cooldownLeft();
+    if (cd) {
+        iB.disabled = oB.disabled = true;
+        const label = '⏳ ' + fmtCd(cd);
+        if (ST.punchState === 'IN') { iA.textContent = '✓'; oA.textContent = label; }
+        else                        { oA.textContent = '✓'; iA.textContent = label; }
         gh.style.display = 'none';
         return;
     }
@@ -1253,6 +1323,11 @@ function empty(tl, msg) {
 function doPunch(action) {
     if (ST.busy) return;
     if (!ST.staff)  { showMsg('Please select your profile first.', 'error');  return; }
+    const cd = cooldownLeft();
+    if (cd) {
+        showMsg('Your last punch is already recorded. Please wait ' + fmtCd(cd) + ' before punching again.', 'warning');
+        return;
+    }
     if (!ST.steady) { showMsg('Outside warehouse zone. Wait for GPS lock.',   'error'); return; }
 
     ST.busy = true; refreshBtns();
@@ -1299,6 +1374,12 @@ function doPunch(action) {
     );
 }
 
+// Every punch carries an id so a retry of one that already landed is
+// recognised by the server instead of being written a second time.
+function newPunchId() {
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+
 function sendPunch(action, la, lo, ac) {
     const fd = new FormData();
     fd.append('staffName', ST.staff);
@@ -1306,6 +1387,8 @@ function sendPunch(action, la, lo, ac) {
     fd.append('lat',       la.toFixed(6));
     fd.append('lon',       lo.toFixed(6));
     fd.append('accuracy',  Math.round(ac));
+    fd.append('punchId',   newPunchId());
+    fd.append('clientTs',  Date.now());
     fd.append('token',     CFG.TOKEN);
 
     fetch(CFG.GAS_URL, { method:'POST', body:fd })
@@ -1317,10 +1400,15 @@ function sendPunch(action, la, lo, ac) {
                 lsSet('ibi_state_'+ST.staff, action);
                 lsDel('ibi_pending');
                 hideBanner(); speak();
+                startCooldown();
                 showMsg('✓ '+action+' recorded at '+t, 'success');
                 doSync();   // reconcile timeline strictly from the server (source of truth)
             } else {
+                // Server refused it as a re-tap — mirror its countdown locally
+                // so the buttons and the message agree.
+                if (d.tooSoon) startCooldown(d.retryAfterSec);
                 showMsg(d.message||'Server error. Please try again.', 'error');
+                doSync();   // the punch may have landed; trust the server's view
             }
         })
         .catch(() => savePending(action, la, lo, ac))
@@ -1330,38 +1418,65 @@ function sendPunch(action, la, lo, ac) {
 // ╔══════════════════════════════════════════╗
 //  OFFLINE QUEUE
 // ╚══════════════════════════════════════════╝
+// A queued punch carries the id it was first sent with, so retrying it can
+// never produce a second entry, and the moment it was taken, so it can be
+// discarded rather than replayed into the wrong shift hours later.
 function savePending(action, la, lo, ac) {
     const t = fmtTime(new Date());
     const p = { staffName:ST.staff, action, lat:la.toFixed(6), lon:lo.toFixed(6),
-                accuracy:Math.round(ac), timestamp:t, retries:0 };
+                accuracy:Math.round(ac), timestamp:t, retries:0,
+                punchId:newPunchId(), queuedAt:Date.now() };
     lsSet('ibi_pending', JSON.stringify(p));
     ST.punchState = action;
     ST.punches.push({ type:action, time:t, pending:true });
     lsSet('ibi_state_'+ST.staff, action);
+    startCooldown();     // the punch may well have landed — don't invite a re-tap
     drawTimeline();
     showBanner(action+' at '+t+' · queued — will retry on reconnect');
     showMsg('Network error. Punch saved offline and will retry automatically.', 'warning');
 }
 
+function dropPending(msg, type) {
+    lsDel('ibi_pending'); hideBanner();
+    if (msg) showMsg(msg, type||'warning');
+    doSync();
+}
+
 function retryPending() {
+    if (ST.retrying || ST.busy) return;     // never let two retries race a live punch
     const raw = lsGet('ibi_pending');
     if (!raw) return;
     let p;
     try { p = JSON.parse(raw); } catch { lsDel('ibi_pending'); return; }
-    if (p.retries > 6) { lsDel('ibi_pending'); hideBanner(); return; }
+    if (p.retries > 6) { dropPending('Queued punch could not be synced. Please check the timeline.'); return; }
+
+    // Too old to be meaningful — replaying it now would land in the wrong slot.
+    if (p.queuedAt && (Date.now() - p.queuedAt) > CFG.PENDING_MAX_AGE_MS) {
+        dropPending('A queued punch was too old to sync and was discarded. Please check the timeline.');
+        return;
+    }
+
+    ST.retrying = true;
     showBanner('Retrying '+p.action+' from '+p.timestamp+'...');
     const fd = new FormData();
     Object.entries(p).forEach(([k,v]) => fd.append(k,v));
     fd.set('token', CFG.TOKEN);
+    fd.set('clientTs', p.queuedAt || Date.now());
     fetch(CFG.GAS_URL, { method:'POST', body:fd })
         .then(r => r.json())
         .then(d => {
             if (d.status==='success') {
                 lsDel('ibi_pending'); hideBanner();
-                showMsg('Pending punch synced to server.','success'); doSync();
+                showMsg(d.duplicate ? 'Punch was already recorded — timeline updated.'
+                                    : 'Pending punch synced to server.', 'success');
+                doSync();
+            } else if (d.stale || d.tooSoon) {
+                // Already recorded, or no longer valid — stop retrying it.
+                dropPending(d.message);
             } else { p.retries++; lsSet('ibi_pending',JSON.stringify(p)); }
         })
-        .catch(() => { p.retries++; lsSet('ibi_pending',JSON.stringify(p)); });
+        .catch(() => { p.retries++; lsSet('ibi_pending',JSON.stringify(p)); })
+        .finally(() => { ST.retrying = false; });
 }
 
 function showBanner(t) { document.getElementById('offTxt').textContent=t; document.getElementById('offBanner').classList.add('show'); }
@@ -1479,7 +1594,7 @@ window.addEventListener('load', () => {
     if (saved) {
         const sel = document.getElementById('staffName');
         sel.value = saved;
-        if (sel.value) { ST.staff = saved; fallbackSt(); drawTimeline(); refreshBtns(); doSync(); }
+        if (sel.value) { ST.staff = saved; loadCooldown(); fallbackSt(); drawTimeline(); refreshBtns(); doSync(); }
     }
     // Belt-and-braces for iOS: catch value changes even if "change" never fires
     document.getElementById('staffName').addEventListener('input', syncProfileFromSelect);
