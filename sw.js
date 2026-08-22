@@ -1,6 +1,6 @@
 /* IBI Staff Attendance — Service Worker
    Bump CACHE on every release (keep in sync with the on-screen version badge). */
-const CACHE = "ibi-attendance-v2.3";
+const CACHE = "ibi-attendance-v2.4";
 const CORE = [
   "./",
   "./index.html",
