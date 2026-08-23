@@ -1,12 +1,19 @@
 // ╔══════════════════════════════════════════════════════════════════╗
 //   IBI STAFF ATTENDANCE — Google Apps Script Backend
-//   Updated: v2.4 (Aug 2026)  ·  Month-Wise Edition
+//   Updated: v2.5 (Aug 2026)  ·  Month-Wise Edition
+//
+//   NEW IN v2.5
+//   • RENAMED "A. Akash" → "S. Akash" (same person, corrected initial).
+//     The staff name is also the monthly TAB NAME, so the empty tab
+//     "A. Akash - August 2026" created under the old spelling is now orphaned:
+//     nothing matches it any more. It holds no punches — delete it by hand.
+//     "S. Akash - August 2026" is created automatically on his first punch.
 //
 //   NEW IN v2.4
-//   • THIRD STAFF MEMBER: "A. Akash" (Assistant Catalogue Manager) added to
-//     STAFF_NAMES. Everything else follows automatically — his monthly tab is
-//     created on his first punch, and salary uses the same global HOURLY_RATE
-//     as S. Aswin and M. Ajay (no per-staff rate exists).
+//   • THIRD STAFF MEMBER: added to STAFF_NAMES. Everything else follows
+//     automatically — his monthly tab is created on his first punch, and salary
+//     uses the same global HOURLY_RATE as S. Aswin and M. Ajay (no per-staff
+//     rate exists).
 //     >>> This file MUST be re-pasted and redeployed, or his punches are
 //         rejected by the allow-list even though the app lists his name. <<<
 //
@@ -44,8 +51,8 @@ var TIME_FORMAT = 'hh:mm:ss a';                       // "08:51:00 AM"
 var DATE_FORMAT = 'dd-MM-yyyy';                       // "01-05-2026"
 var HEADER_ROWS = 1;
 var HOURLY_RATE = 100;                                // Rs per hour
-var STAFF_NAMES = ['S. Aswin', 'M. Ajay', 'A. Akash']; // ← add new staff names here (also the server-side allow-list)
-var APP_VERSION = 'v2.4';                             // shown in About; keep in sync with index.html badge
+var STAFF_NAMES = ['S. Aswin', 'M. Ajay', 'S. Akash']; // ← add new staff names here (also the server-side allow-list)
+var APP_VERSION = 'v2.5';                             // shown in About; keep in sync with index.html badge
 
 // ── Anti-repeat-punch guard (v2.3) ───────────────────────────────
 //   The v2.0 firewall only enforced IN/OUT *alternation*. It had no notion of
