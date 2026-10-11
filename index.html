@@ -613,19 +613,28 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
    MOBILE: EDGE-TO-EDGE, no page padding
 ═══════════════════════════════════════════════ */
 @media (max-width: 480px) {
+    /* v2.6 (CEO 11 Oct 2026, edge to edge): never wider than the screen (clip, not hidden, keeps the sticky header),
+       full-bleed cards, 10px inner side padding, header 8px, long words break inside their box. */
+    html, body { overflow-x: clip; }
     body { padding-bottom: 0; }
     .page {
         max-width: 100%;
-        padding: 9px 0 0;
-        gap: 9px;
+        padding: 8px 0 0;
+        gap: 8px;
     }
     .card, .entry-card {
         border-radius: 0;
         border-left: none;
         border-right: none;
+        box-shadow: none;
+        overflow-wrap: anywhere;
     }
-    .card-bd { padding: 15px 13px; }
-    .entry-bd { padding: 13px; }
+    .app-header { padding-left: 8px; padding-right: 8px; }
+    .card-hd { padding-left: 10px; padding-right: 10px; }
+    .card-bd { padding: 15px 10px; }
+    .entry-bd { padding: 13px 10px; }
+    .clock-bar { padding-left: 10px; padding-right: 10px; }
+    .sheet { padding-left: 10px; padding-right: 10px; }
     .entry-val { font-size: 13px; }
     .ibanner { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); }
     .hdr-title { font-size: 18px; }
@@ -639,7 +648,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <header class="app-header">
 
     <!-- Version badge — top-left -->
-    <span class="ver-badge" id="verBadge">v2.5</span>
+    <span class="ver-badge" id="verBadge">v2.6</span>
 
     <!-- Actions — top-right: Install · Theme toggle · Menu -->
     <div class="hdr-actions">
@@ -825,7 +834,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <div class="sheet-back" id="sheetBack" onclick="sheetBackTap(event)">
     <div class="sheet" role="dialog" aria-label="Menu">
         <div class="sheet-grab"></div>
-        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.5</span></div>
+        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.6</span></div>
 
         <button class="sheet-item" id="menuInstall" onclick="triggerInstall(); closeSheet()" style="display:none">
             <span class="si-ico">⤓</span> Install as App (PWA)

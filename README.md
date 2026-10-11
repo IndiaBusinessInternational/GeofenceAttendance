@@ -1,4 +1,4 @@
-# IBI Staff Attendance — v2.0
+# IBI Staff Attendance — v2.6
 
 Geofenced staff attendance PWA for India Business International.
 Live: https://staff.indiabusinessinternational.online/
