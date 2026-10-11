@@ -627,8 +627,10 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
         border-left: none;
         border-right: none;
         box-shadow: none;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
     }
+    /* v2.7: overflow-wrap is inherited — controls never split mid-word */
+    button, .btn, select, input, [role="button"] { overflow-wrap: normal; }
     .app-header { padding-left: 8px; padding-right: 8px; }
     .card-hd { padding-left: 10px; padding-right: 10px; }
     .card-bd { padding: 15px 10px; }
@@ -648,7 +650,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <header class="app-header">
 
     <!-- Version badge — top-left -->
-    <span class="ver-badge" id="verBadge">v2.6</span>
+    <span class="ver-badge" id="verBadge">v2.7</span>
 
     <!-- Actions — top-right: Install · Theme toggle · Menu -->
     <div class="hdr-actions">
@@ -834,7 +836,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <div class="sheet-back" id="sheetBack" onclick="sheetBackTap(event)">
     <div class="sheet" role="dialog" aria-label="Menu">
         <div class="sheet-grab"></div>
-        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.6</span></div>
+        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.7</span></div>
 
         <button class="sheet-item" id="menuInstall" onclick="triggerInstall(); closeSheet()" style="display:none">
             <span class="si-ico">⤓</span> Install as App (PWA)
