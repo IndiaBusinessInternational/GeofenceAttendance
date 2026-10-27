@@ -1,4 +1,6 @@
-# IBI Staff Attendance — v2.9
+# IBI Staff Attendance — v2.10
+
+v2.10 (27 Oct 2026): edge to edge on every screen size: no centred 440 px column on laptops; full-bleed cards with 10 px inner padding; wide screens show two columns of cards.
 
 v2.9 (27 Oct 2026): on phones the logo sits below the top-right buttons, so the Share button never covers it.
 

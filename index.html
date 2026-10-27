@@ -644,6 +644,25 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 }
     /* v2.9: on phones the logo sits below the top-right buttons, so the Share button never covers it */
     @media (max-width: 640px) { .logo-block { margin-top: 44px; } }
+/* v2.10 EDGE TO EDGE ON EVERY SCREEN SIZE (Founder 27 Oct 2026: "Yes, make all the apps edge to edge on laptop too").
+   No centred 440px column at any width: cards are full-bleed with 10px inner side padding, header 8px.
+   Wide screens show two columns: profile, entry time and geofence | today's punches and the punch buttons. */
+html, body { overflow-x: clip; }
+.page { max-width: none; padding: 8px 0 0; gap: 8px; }
+.col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.card, .entry-card { border-radius: 0; border-left: none; border-right: none; box-shadow: none; overflow-wrap: break-word; }
+button, .btn, select, input, [role="button"] { overflow-wrap: normal; }
+.app-header { padding-left: 8px; padding-right: 8px; }
+.ver-badge { left: 8px; }
+.hdr-actions { right: 8px; }
+.card-hd { padding-left: 10px; padding-right: 10px; }
+.card-bd { padding: 15px 10px; }
+.entry-bd { padding: 13px 10px; }
+.clock-bar { padding-left: 10px; padding-right: 10px; }
+.offline-banner { border-radius: 0; border-left: none; border-right: none; padding-left: 10px; padding-right: 10px; }
+@media (min-width: 900px) {
+    .page { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
     </style>
 <script src="ibi-share.js" defer data-slot=".hdr-actions"></script>
 </head>
@@ -653,7 +672,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <header class="app-header">
 
     <!-- Version badge — top-left -->
-    <span class="ver-badge" id="verBadge">v2.9</span>
+    <span class="ver-badge" id="verBadge">v2.10</span>
 
     <!-- Actions — top-right: Install · Theme toggle · Menu -->
     <div class="hdr-actions">
@@ -706,6 +725,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 
 <!-- ═══════════════  PAGE  ═══════════════ -->
 <div class="page">
+<div class="col">
 
     <!-- STAFF PROFILE -->
     <div class="card">
@@ -785,6 +805,9 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
         <span id="offTxt">Pending punch queued — will retry on reconnect</span>
     </div>
 
+</div><!-- /col: profile, time, geofence -->
+<div class="col">
+
     <!-- TODAY'S ACTIVITY -->
     <div class="card">
         <div class="card-hd">
@@ -818,6 +841,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
         </div>
     </div>
 
+</div><!-- /col: activity, punch -->
 </div><!-- /page -->
 
 
@@ -839,7 +863,7 @@ select#staffName:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px var(--
 <div class="sheet-back" id="sheetBack" onclick="sheetBackTap(event)">
     <div class="sheet" role="dialog" aria-label="Menu">
         <div class="sheet-grab"></div>
-        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.9</span></div>
+        <div class="sheet-hd"><span>Menu</span><span class="sv">IBI Staff Attendance · v2.10</span></div>
 
         <button class="sheet-item" id="menuInstall" onclick="triggerInstall(); closeSheet()" style="display:none">
             <span class="si-ico">⤓</span> Install as App (PWA)
