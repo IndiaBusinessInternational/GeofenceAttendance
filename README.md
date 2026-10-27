@@ -1,4 +1,6 @@
-# IBI Staff Attendance — v2.7
+# IBI Staff Attendance — v2.8
+
+v2.8 (27 Oct 2026): new "Share this app" button in the header (ibi-share.js).
 
 Geofenced staff attendance PWA for India Business International.
 Live: https://staff.indiabusinessinternational.online/

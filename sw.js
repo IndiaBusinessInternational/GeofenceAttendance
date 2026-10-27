@@ -1,6 +1,6 @@
 /* IBI Staff Attendance — Service Worker
    Bump CACHE on every release (keep in sync with the on-screen version badge). */
-const CACHE = "ibi-attendance-v2.7";
+const CACHE = "ibi-attendance-v2.8";
 const CORE = [
   "./",
   "./index.html",
@@ -8,7 +8,8 @@ const CORE = [
   "./logo.png",
   "./icon-192.png",
   "./icon-512.png",
-  "./icon-512-mask.png"
+  "./icon-512-mask.png",
+  "./ibi-share.js"
 ];
 
 self.addEventListener("install", (e) => {
