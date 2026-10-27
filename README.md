@@ -1,4 +1,6 @@
-# IBI Staff Attendance — v2.8
+# IBI Staff Attendance — v2.9
+
+v2.9 (27 Oct 2026): on phones the logo sits below the top-right buttons, so the Share button never covers it.
 
 v2.8 (27 Oct 2026): new "Share this app" button in the header (ibi-share.js).
 
